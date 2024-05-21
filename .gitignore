@@ -1,0 +1,12 @@
+*.pt
+*.txt
+*.out
+*.err
+*.pkl
+*.csv
+*.model
+*.pyc
+*.ipynb_checkpoints
+*.DS_Store
+
+.venv/
