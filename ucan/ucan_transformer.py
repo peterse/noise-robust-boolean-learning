@@ -61,6 +61,12 @@ class PositionalEncoding(nn.Module):
         return self.dropout(token_embedding + self.pos_embedding[:token_embedding.size(0), :])
     
 
+def generate_square_subsequent_mask(sz, device):
+    mask = (torch.triu(torch.ones((sz, sz), device=device)) == 1).transpose(0, 1)
+    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    return mask
+
+
 class Seq2SeqTransformer(nn.Module):
     """from https://pytorch.org/tutorials/beginner/translation_transformer.html"""
     def __init__(self, num_encoder_layers, num_decoder_layers, emb_size, nhead, src_vocab_size, tgt_vocab_size,
@@ -108,8 +114,8 @@ class Seq2SeqTransformer(nn.Module):
         logits = logits.view(B*T, C)
         # I'm sketchy about this. also C = vocab_size now
         targets = trg.view(B*T)
-        print(logits, "logits")
-        print(targets, "targets")
+        # print(logits, "logits")
+        # print(targets, "targets")
         loss = F.cross_entropy(logits, targets)
 
         return logits, loss
