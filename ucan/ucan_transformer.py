@@ -31,6 +31,8 @@ class TokenEmbedding(nn.Module):
 class PositionalEncoding(nn.Module):
     """from https://pytorch.org/tutorials/beginner/translation_transformer.html
     
+    Note: This has been heavily modified for BATCH FIRST mode.
+
     Args:
         emb_size: dimension of the embedding, i.e. d_model. MUST BE EVEN
         dropout: dropout rate
@@ -46,7 +48,9 @@ class PositionalEncoding(nn.Module):
         pos_embedding = torch.zeros((maxlen, emb_size))
         pos_embedding[:, 0::2] = torch.sin(pos * den)
         pos_embedding[:, 1::2] = torch.cos(pos * den)
-        pos_embedding = pos_embedding.unsqueeze(-2)
+
+        # insert batch dimension up front for batch_first convention
+        pos_embedding = pos_embedding.unsqueeze(0) # (1, maxlen, emb_size)
 
         self.dropout = nn.Dropout(dropout)
         self.register_buffer('pos_embedding', pos_embedding)
@@ -58,7 +62,11 @@ class PositionalEncoding(nn.Module):
         Returns:
             Tensor: (batch_size, n, emb_size), with positional encoding
         """
-        return self.dropout(token_embedding + self.pos_embedding[:token_embedding.size(0), :])
+        # NOTE: dropout has a normalization subroutine so this object might 
+        # have a weird norm. For instance, if the token embedding is all zeros you 
+        # might get values larger than 1 (the maximum of sin, cos)
+        sliced = self.pos_embedding[:, :token_embedding.size(-2)] # (1, sequence_len, emb_size)
+        return self.dropout(token_embedding + sliced)
     
 
 def generate_square_subsequent_mask(sz, device):
