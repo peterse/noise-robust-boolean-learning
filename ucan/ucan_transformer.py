@@ -120,13 +120,9 @@ class Seq2SeqTransformer(nn.Module):
         # Forward is only called during training/validation, so this is fine
         B, T, C = logits.shape
         logits = logits.view(B*T, C)
-        # I'm sketchy about this. also C = vocab_size now
-        targets = trg.view(B*T)
-        # print(logits, "logits")
-        # print(targets, "targets")
-        loss = F.cross_entropy(logits, targets)
 
-        return logits, loss
+
+        return logits
 
     def encode(self, src, src_mask):
         src_pos_emb = self.positional_encoding(self.src_tok_emb(src))
