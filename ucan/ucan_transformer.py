@@ -40,7 +40,8 @@ class PositionalEncoding(nn.Module):
     def __init__(self,
                  emb_size: int,
                  dropout: float,
-                 maxlen: int = 5000):
+                 maxlen: int = 5000,
+                 disable = False):
         super(PositionalEncoding, self).__init__()
         # this just rearranges the equation from Vaswani et al. (2017)
         den = torch.exp(- torch.arange(0, emb_size, 2)* math.log(10000) / emb_size)
@@ -51,7 +52,9 @@ class PositionalEncoding(nn.Module):
 
         # insert batch dimension up front for batch_first convention
         pos_embedding = pos_embedding.unsqueeze(0) # (1, maxlen, emb_size)
-
+        # This lets me turn off positional encoding.
+        if disable:
+            pos_embedding = torch.zeros_like(pos_embedding)
         self.dropout = nn.Dropout(dropout)
         self.register_buffer('pos_embedding', pos_embedding)
 
@@ -78,7 +81,7 @@ def generate_square_subsequent_mask(sz, device):
 class Seq2SeqTransformer(nn.Module):
     """from https://pytorch.org/tutorials/beginner/translation_transformer.html"""
     def __init__(self, num_encoder_layers, num_decoder_layers, emb_size, nhead, src_vocab_size, tgt_vocab_size,
-                 dim_feedforward=512, dropout=0.1):
+                 dim_feedforward=512, positional_encoding=True, norm_first = False, dropout=0.1):
         super(Seq2SeqTransformer, self).__init__()
         self.transformer = Transformer(d_model=emb_size,
                                        nhead=nhead,
@@ -86,11 +89,14 @@ class Seq2SeqTransformer(nn.Module):
                                        num_decoder_layers=num_decoder_layers,
                                        dim_feedforward=dim_feedforward,
                                        dropout=dropout,
+                                       norm_first=norm_first,                                       
+                                       bias=True,
                                        batch_first=True) # (batch, seq_len, d_model)
         
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
-        self.positional_encoding = PositionalEncoding(emb_size, dropout=dropout)
+        self.positional_encoding = PositionalEncoding(emb_size, dropout=dropout, disable=(not positional_encoding))
+
         # Final layer for output decoder
         self.generator = nn.Linear(emb_size, tgt_vocab_size)
 
