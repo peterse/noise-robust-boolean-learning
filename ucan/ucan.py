@@ -16,9 +16,10 @@ def bitwise_ucan_v1(n, n_data, p0_delta, p_diff, seed=0):
     p_diff and p_00 must describe a valid join distribution, i.e. p_00 + 2*p_diff <=1
 
     Args:
-        p0_delta: (float) or (array). If float, it will be promoted to a 
-                  length-n array containing Pr(Delta_i=0) at location i
-        p_diff: (float) or (array) containing Pr(Gamma_i=1, Delta_i=0) for i=1...n
+        p0_delta: (float) or (array). Probability for correlated noise to be 0. 
+                If float, it will be promoted to a length-n array containing Pr(Delta_i=0) at location i
+        p_diff: (float) or (array) probability that gamma, delta differ. 
+                Containing Pr(Gamma_i=1, Delta_i=0) for i=1...n
 
     Returns:
         (n_data, n, 2) array of (gamma, delta)
