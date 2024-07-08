@@ -10,3 +10,5 @@
 *.DS_Store
 
 .venv/
+.env
+OPENAI_API_KEY
