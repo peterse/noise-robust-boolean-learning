@@ -1,5 +1,6 @@
-import entropy
 import numpy as np
+
+from mindreadingautobots.entropy import entropy
 
 
 def test_conditional_H_of_xn_given_kbits_klookback():
@@ -57,3 +58,56 @@ def test_lookback_math():
     # print(p_cond.shape)
 
     assert np.allclose(p_cond, p_cond_truth)
+
+
+def test_conditional_H_of_xnplusm_given_kbits_klookback():
+
+    # consistency test
+    k = 2
+    p_S = np.ones(4).reshape(2, 2) / 4
+    p_x_conditional = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]).reshape(2, 2, 2) 
+    for n in [3, 4, 5, 6]:
+        # the last bit is uniformly random
+        truth = entropy.conditional_H_of_xn_given_kbits_klookback(n, k, p_S, p_x_conditional)
+        assert np.allclose(truth, 1) 
+        new = entropy.conditional_H_of_xnplusm_given_kbits_klookback(n, 1, k, p_S, p_x_conditional)
+        assert np.allclose(new, truth)
+
+    # the only entropy here is the seeds
+    p_x_conditional = np.array([1, 1, 1, 1, 0, 0, 0, 0]).reshape(2, 2, 2)
+    assert np.allclose(entropy.conditional_H_of_xn_given_kbits_klookback(7, k, p_S, p_x_conditional), 0) 
+    for m in range(2, 5):
+        assert np.allclose(entropy.conditional_H_of_xnplusm_given_kbits_klookback(7, m, k, p_S, p_x_conditional), 0)
+
+    # Random distributions, random lookback and forward steps
+    CASES = [(3, 1, 1), (4, 1, 1), (3, 1, 2), (5, 1, 2), (5, 1, 4), (3, 2, 1), 
+            (3, 2, 2), (4, 3, 3), (3, 3, 2),  (4, 2, 2), (4, 3, 2), (6, 4, 2)]
+
+    for (n, m, k) in CASES:
+        p_x_conditional = np.random.rand(*((2,) * (k + 1)))
+        p_x_conditional = p_x_conditional / p_x_conditional.sum(axis=0) 
+        p_S = np.random.rand(2 ** k ).reshape((2,) * k)
+        p_S = p_S / p_S.sum()
+        
+        # build total distribution
+        p = np.copy(p_S)
+        for i in range(n + m - k - 1):
+            # This slicing operation places a sequence of new axes at the 
+            # end of the conditional distr., to 'make up' for the fact
+            # that we have k-lookback. You can think of this as aligning
+            # the cond. distr. with p by replacing all the variables that
+            # the cond. distr. is cond. indep. from back into the conditioning
+            # clause. 
+            cond_slice = (...,) + (np.newaxis,) * (i)
+            p = p_x_conditional[cond_slice] * p
+    
+        p_marginal = p.sum(axis=tuple(range(m))) 
+        # compute marginal entropy
+        H_tot = entropy.shannon_entropy(p)
+        H_marginal = entropy.shannon_entropy(p_marginal)
+        truth = H_tot - H_marginal
+
+        # compare to the function
+        pred = entropy.conditional_H_of_xnplusm_given_kbits_klookback(n, m, k, p_S, p_x_conditional)
+        passing = np.allclose(truth, pred)
+        assert passing

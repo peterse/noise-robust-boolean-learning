@@ -1,5 +1,5 @@
 import numpy as np
-import ucan 
+from mindreadingautobots.ucan import ucan 
 
 
 def test_bitwise_ucan_v1():

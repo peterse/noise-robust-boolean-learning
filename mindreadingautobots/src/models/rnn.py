@@ -1,0 +1,134 @@
+"""rnn.py - RNN model for forecasting and next-bit prediction plus hyperparameter tuning."""
+import torch
+from torch.nn import functional as F
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
+from ray import tune
+from ray import train
+from ray.tune import CLIReporter
+from ray.tune.schedulers import ASHAScheduler
+
+
+
+class BinaryRNN(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, n_layers):
+        super(BinaryRNN, self).__init__()
+        
+        self.hidden_dim = hidden_dim
+        self.n_layers = n_layers
+        
+        self.rnn = nn.RNN(input_dim, hidden_dim, n_layers, batch_first=True, nonlinearity='relu')
+        self.fc = nn.Linear(hidden_dim, output_dim)
+    
+    def forward(self, x, hidden):
+        """
+        Compute the forward pass for a given hidden layer. 
+
+        NOTE: the output is flattened before being returned.
+
+        Args:
+            x: (batch_size, seq_length, input_size)
+            hidden: (n_layers, batch_size, hidden_dim)
+
+        Returns:
+            output: (batch_size*seq_length, output_dim)
+            hidden: (n_layers, batch_size, hidden_dim)
+        """
+        # x (batch_size, seq_length, input_size)
+        # hidden (n_layers, batch_size, hidden_dim)
+        # r_out (batch_size, time_step, hidden_size)
+        batch_size = x.size(0)
+        
+        # get RNN outputs
+        r_out, hidden = self.rnn(x, hidden)
+
+        # shape output to be (batch_size*seq_length, hidden_dim)
+        r_out = r_out.reshape(-1, self.hidden_dim)  
+        
+        # get final output 
+        output = self.fc(r_out)
+        
+        return output, hidden
+    
+    
+def train_binary_rnn(config, n_epochs=50, checkpoint_dir=None):
+    """Train the RNN from within a raytune context. 
+    
+    Everything in this function needs to be reachable from the scope
+    of a raytune process called from wherever you're calling it from.
+    """
+    # batch_size, epoch and iteration
+    BATCH_SIZE = 10
+
+    # Data setup
+    train_data, val_data = load_data()
+    data_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
+    val_data_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
+
+    # Model setup
+    hidden = None # initial hidden state
+    model = BinaryRNN(1, config["hidden_size"], 1, config["num_layers"])
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
+
+    for epoch in range(n_epochs):  # You can adjust the number of epochs
+        model.train()
+        for X in data_loader:
+            assert X.shape[0] == BATCH_SIZE # this is for if you didn't divide your dataset evenly, dummy
+            inputs = X[:, :-1,:] # (batch_size, seq_length, 1)
+            target = X[:, 1:,:]
+            optimizer.zero_grad()
+            output, hidden = model(inputs, hidden) # output is of shape (batch_size*seq_length, 1)
+            hidden = hidden.data # this is to prevent backpropagation through the entire dataset
+            loss = criterion(output, target.reshape(-1, 1))
+            loss.backward()
+            optimizer.step()
+
+        # Validation loss gets reported to raytune
+        val_loss = 0.0
+        val_steps = 0
+        correct = 0
+        for i, X_val in enumerate(val_data_loader, 0):
+            with torch.no_grad():
+                inputs = X_val[:, :-1,:]
+                target = X_val[:, 1:,:]
+                optimizer.zero_grad()
+                output, hidden = model(inputs, hidden) # output is of shape (batch_size*seq_length, 1)
+                _, predicted = torch.max(output.data, 1)
+                correct += (predicted == target).sum().item()
+
+                # note, we are using BCEWithLogitsLoss, which contains a sigmoid activation already
+                loss = criterion(output,  target.reshape(-1, 1))
+                val_loss += loss.cpu().numpy()
+                val_steps += 1
+
+        train.report({"loss": (val_loss / val_steps)})
+
+
+
+# Setup Ray Tune's hyperparameter search
+def tune_hyperparameters(config, num_samples=10, max_num_epochs=10, gpus_per_trial=0):
+
+    scheduler = ASHAScheduler(
+        metric="loss",
+        mode="min",
+        max_t=max_num_epochs,
+        grace_period=1,
+        reduction_factor=2)
+
+    reporter = CLIReporter(
+        metric_columns=["loss", "training_iteration"])
+
+    result = tune.run(
+        train_binary_rnn,
+        resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
+        config=config,
+        num_samples=num_samples,
+        scheduler=scheduler,
+        progress_reporter=reporter)
+
+    best_trial = result.get_best_trial("loss", "min", "last")
+    print("Best trial config: {}".format(best_trial.config))
+    print("Best trial final validation loss: {}".format(best_trial.last_result["loss"]))
+

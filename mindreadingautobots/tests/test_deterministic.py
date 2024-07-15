@@ -1,4 +1,4 @@
-import deterministic
+from mindreadingautobots.sequence_generators import deterministic
 
 def test_deterministic():
 

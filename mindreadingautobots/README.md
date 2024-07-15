@@ -1,0 +1,1 @@
+Install locally with `python -m pip install -e .` called from this directory. 

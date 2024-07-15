@@ -12,3 +12,5 @@
 .venv/
 .env
 OPENAI_API_KEY
+*.egg-info
+__pycache__
