@@ -16,6 +16,32 @@ def binary_entropy(p):
     return - xlogx(p) - xlogx(1 - p)
 
 
+def one_prob_to_conditional(transition_matrix, k):
+    """Convert a weight-based transition matrix to a cond. distr.
+    
+    Args:
+        transition_matrix (np.array): a dictionary with (k+1) keys and values in [0, 1]
+        k (int): the lookback parameter
+
+    Returns:
+        p_x_conditional (np.array): a (2,) * (k + 1) array 
+    """
+    p_x_conditional = np.zeros((2,) * (k + 1))
+    # we iterate over all indices of p_x_conditional and assign values based on the weight
+    # of the binary representation of the index
+    for idx in np.ndindex(p_x_conditional.shape):
+        conditioner = idx[1:]
+        weight = sum(conditioner)
+        # the probability of a 1 given the previous `lookback` bits
+        # each of these is a stochastic matrix. I'm fucking lazy and i'm 
+        # not going to deal with sparse arrays this is python ffs
+        p_x_conditional[tuple([1] + list(conditioner))] = transition_matrix[weight]
+        p_x_conditional[tuple([0] + list(conditioner))] = 1 - transition_matrix[weight]
+    assert p_x_conditional.shape == (2,)*(k+1)
+    
+    return p_x_conditional
+
+
 def conditional_H_of_xn_given_kbits_klookback(n, k, p_S, p_x_conditional):
     """Compute the conditional entropy 
     

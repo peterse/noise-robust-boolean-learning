@@ -15,14 +15,14 @@ def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, s
 
     returns:
         X: (n_data, n_bits) array of noiseless data
-        Z: (n_data, n_bits) array of noisy data
+        Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
     """
     assert len(transition_matrix) == k + 1
     assert np.all([0 <= v <= 1 for v in transition_matrix.values()])
     assert n_bits > k
     
     np.random.seed(seed)
-    X = np.random.randint(0, 2, shape=(n_data, k))
+    X = np.random.randint(0, 2, size=(n_data, n_bits))
     Z = None
     for i in range(n_data):
         for j in range(k, n_bits):
@@ -67,6 +67,9 @@ def parity_4lookback(n_data, n_bits, p_bitflip, seed):
     """
     transition_matrix = {0: 0, 1: 1, 2: 0, 3: 1, 4: 0}
     return k_lookback_weight_dataset(transition_matrix, 4, n_data, n_bits, p_bitflip, seed) 
+
+
+
 
 
 def sparse_classification_k_n(n, k, n_data, p_bitflip):
