@@ -4,10 +4,8 @@ from torch.nn import functional as F
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from ray import tune
 from ray import train
-from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler
+
 
 
 
@@ -52,7 +50,7 @@ class BinaryRNN(nn.Module):
         return output, hidden
     
     
-def train_binary_rnn(config, n_epochs=50, checkpoint_dir=None):
+def train_binary_rnn(config, data, checkpoint_dir=None):
     """Train the RNN from within a raytune context. 
     
     Everything in this function needs to be reachable from the scope
@@ -61,10 +59,11 @@ def train_binary_rnn(config, n_epochs=50, checkpoint_dir=None):
     # batch_size, epoch and iteration
     BATCH_SIZE = 10
 
+    epochs = config["epochs"]
     # Data setup
-    train_data, val_data = load_data()
-    data_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
-    val_data_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
+    n_train = int(len(data) * 0.8)
+    data_loader = DataLoader(data[:n_train], batch_size=BATCH_SIZE, shuffle=True)
+    val_data_loader = DataLoader(data[n_train:], batch_size=BATCH_SIZE, shuffle=False)
 
     # Model setup
     hidden = None # initial hidden state
@@ -72,7 +71,7 @@ def train_binary_rnn(config, n_epochs=50, checkpoint_dir=None):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
 
-    for epoch in range(n_epochs):  # You can adjust the number of epochs
+    for epoch in range(epochs):  # You can adjust the number of epochs
         model.train()
         for X in data_loader:
             assert X.shape[0] == BATCH_SIZE # this is for if you didn't divide your dataset evenly, dummy
@@ -104,31 +103,3 @@ def train_binary_rnn(config, n_epochs=50, checkpoint_dir=None):
                 val_steps += 1
 
         train.report({"loss": (val_loss / val_steps)})
-
-
-
-# Setup Ray Tune's hyperparameter search
-def tune_hyperparameters(config, num_samples=10, max_num_epochs=10, gpus_per_trial=0):
-
-    scheduler = ASHAScheduler(
-        metric="loss",
-        mode="min",
-        max_t=max_num_epochs,
-        grace_period=1,
-        reduction_factor=2)
-
-    reporter = CLIReporter(
-        metric_columns=["loss", "training_iteration"])
-
-    result = tune.run(
-        train_binary_rnn,
-        resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
-        config=config,
-        num_samples=num_samples,
-        scheduler=scheduler,
-        progress_reporter=reporter)
-
-    best_trial = result.get_best_trial("loss", "min", "last")
-    print("Best trial config: {}".format(best_trial.config))
-    print("Best trial final validation loss: {}".format(best_trial.last_result["loss"]))
-

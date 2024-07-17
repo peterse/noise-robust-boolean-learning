@@ -2,8 +2,6 @@
 import itertools
 import numpy as np
 
-import deterministic
-
 
 def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, seed):
     """Abstract function for _specific_ k-lookback boolean function.
