@@ -4,7 +4,7 @@ from ray.tune.schedulers import ASHAScheduler
 from ray import tune
 from ray.train import RunConfig
 
-def tune_hyperparameters(config, training_function, data, num_samples=10, max_num_epochs=10, n_cpus=1, gpus_per_trial=0):
+def tune_hyperparameters(config, training_function, data, num_samples=10, n_cpus=1, gpus_per_trial=0):
     """Tune hyperparameters for a given model training routine.
 
     Several design decisions:
@@ -18,18 +18,22 @@ def tune_hyperparameters(config, training_function, data, num_samples=10, max_nu
         train_model: Signature of this: Input should be `config`, *args. We
             can pass any args by including them as kwargs in `tune.with_parameters`.
         num_samples: number of models to try for each hyperparameter configuration.
-        max_num_epochs: maximum number of epochs to train for
         gpus_per_trial: number of GPUs to use per trial
     """
+
+    # Notes about this scheduler:
+    # - It will terminate iterations depending on how promising a hyperparameter set looks
     scheduler = ASHAScheduler(
         metric="loss",
         mode="min",
-        max_t=max_num_epochs,
+        max_t=config["epochs"], # I'm not sure what this kwarg does and neither is the documentation
         grace_period=1,
         reduction_factor=2)
 
     reporter = CLIReporter(
-        metric_columns=["loss", "training_iteration"])
+        metric_columns=["loss", "training_iteration"],
+        print_intermediate_tables=False,
+        )
 
     tune_config = tune.TuneConfig(
         num_samples=num_samples,

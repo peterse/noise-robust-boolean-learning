@@ -60,7 +60,8 @@ def train_binary_rnn(config, data, checkpoint_dir=None):
     BATCH_SIZE = 10
 
     epochs = config["epochs"]
-    # Data setup
+
+    # Data setup: WE have a fixed train/val split of 80/20
     n_train = int(len(data) * 0.8)
     data_loader = DataLoader(data[:n_train], batch_size=BATCH_SIZE, shuffle=True)
     val_data_loader = DataLoader(data[n_train:], batch_size=BATCH_SIZE, shuffle=False)
