@@ -50,11 +50,14 @@ class BinaryRNN(nn.Module):
         return output, hidden
     
     
-def train_binary_rnn(config, data, checkpoint_dir=None):
+def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False):
     """Train the RNN from within a raytune context. 
     
     Everything in this function needs to be reachable from the scope
     of a raytune process called from wherever you're calling it from.
+
+    TODO: model checkpointing
+
     """
     # batch_size, epoch and iteration
     BATCH_SIZE = 10
@@ -82,6 +85,7 @@ def train_binary_rnn(config, data, checkpoint_dir=None):
             optimizer.zero_grad()
             output, hidden = model(inputs, hidden) # output is of shape (batch_size*seq_length, 1)
             hidden = hidden.data # this is to prevent backpropagation through the entire dataset
+            # note, we are using BCEWithLogitsLoss, which contains a sigmoid activation already
             loss = criterion(output, target.reshape(-1, 1))
             loss.backward()
             optimizer.step()
@@ -91,27 +95,37 @@ def train_binary_rnn(config, data, checkpoint_dir=None):
         val_loss = 0.0
         val_steps = 0
         correct = 0
+        model.eval()
         for i, X_val in enumerate(val_data_loader, 0):
-            with torch.no_grad():
-                inputs = X_val[:, :-1,:]
-                target = X_val[:, 1:,:]
-                optimizer.zero_grad()
-                output, hidden = model(inputs, hidden) # output is of shape (batch_size*seq_length, 1)
-                _, predicted = torch.max(output.data, 1)
-                print(output)
-                print(output.shape)
-                correct += (predicted == target).sum().item()
+            inputs_val = X_val[:, :-1,:]
+            target_val = X_val[:, 1:,:]
+            target_flat = target_val.reshape(-1, 1)
+            optimizer.zero_grad()
+            output_val, _ = model(inputs_val, hidden) # output is of shape (batch_size*seq_length, 1)
+            if verbose:
+                print(output_val)
+                print(output_val.shape)
+            # Compute accuracy
+            # FIXME: this prediction scheme doesn't work because output has 
+            # already been flattened? do we need torch.sign?
+            _, predicted = torch.max(output_val.data, 1)
+            predicted = predicted.reshape(-1, 1)
+            Z = (predicted == target_flat).long()
+            correct += Z.sum().item()
 
-                # note, we are using BCEWithLogitsLoss, which contains a sigmoid activation already
-                loss = criterion(output,  target.reshape(-1, 1))
-                val_loss += loss.cpu().numpy()
-                val_steps += 1
-                # also compute model mean accuracy on validation. Report all metrics in a single `report` call!
-            break
-        break
-        print(correct)
-        print(X_val.size())
-        print(BATCH_SIZE * seq_len * val_steps)
-        print()
-        train.report({"loss": (val_loss / val_steps),
-                      "mean_accuracy": correct / (BATCH_SIZE * seq_len * val_steps)})
+            # Compute loss
+            loss = criterion(output_val,  target_flat)
+            val_loss += loss.item()
+            val_steps += 1
+            if verbose:
+                print(predicted.flatten())
+                print(target_flat.flatten())
+        # if val_steps > 4: # for mini-batching on the validation set
+        #     break
+
+        # Report all metrics in a single `report` call!
+        metrics = {"loss": (val_loss / val_steps),
+                      "mean_accuracy": correct / (BATCH_SIZE * seq_len * val_steps)}
+        train.report(metrics)
+        if verbose:
+            print(metrics)

@@ -9,32 +9,37 @@ def main():
     
     # DATA LOADING
     seed = 334
-    n_train = 200 
+    n_train = 800 
     n_data = int(n_train * 5/4) # downstream we have a 80/20 train/val split
-    n_bits = 32 + 1
-    k = 4
-    noisy_not_majority_transition_matrix = {0: 0.05, 1: 0.05, 2: 0.05, 3: 0.95, 4: 0.95}
+    n_bits = 8 + 1
+    # k = 4
+    # noisy_not_majority_transition_matrix = {0: 0.05, 1: 0.05, 2: 0.05, 3: 0.95, 4: 0.95}
+    # noisy_not_majority_transition_matrix = {0: 0.00, 1: 0.00, 2: 0.00, 3: 1, 4: 1}
+    k = 2
+    noisy_not_majority_transition_matrix = {0: 0.00, 1: 1, 2: 1}
+
     X, _ = make_datasets.k_lookback_weight_dataset(noisy_not_majority_transition_matrix, k, n_data, n_bits, 0, seed)
     # Insert feature dimension (1 for scalar bits), and convert to tensor
     stochastic_majority_data = torch.tensor(X).float().unsqueeze(-1) 
-
-
+    print(X[:3])
+    print(stochastic_majority_data.shape)
     config = {
-            "hidden_size": 4,
-            "num_layers": 2,
-            "lr": 1e-4,
-            "epochs": 100,
+            "hidden_size": 64,
+            "num_layers": 4,
+            "lr": 3e-5,
+            "epochs": 1000,
         } 
-    rnn.train_binary_rnn(config, stochastic_majority_data)
+    rnn.train_binary_rnn(config, stochastic_majority_data, verbose=True)
 
     return 
     # HYPERPARAMETER SEARCH
-    config = {
-            "hidden_size": tune.choice([16, 32]),
-            "num_layers": tune.choice([1, 2]),
-            "lr": tune.loguniform(1e-4, 1e-3),
-            "epochs": 100,
-        } # NOTE: you can't just replace these with a list with a single element, or tune.choice([1])...
+    # # NOTE: you can't just replace these with a list with a single element, or tune.choice([1])...
+    # config = {
+    #         "hidden_size": tune.choice([16, 32]),
+    #         "num_layers": tune.choice([1, 2]),
+    #         "lr": tune.loguniform(1e-4, 1e-3),
+    #         "epochs": 100,
+    #     } 
     
     hyperparameters.tune_hyperparameters(
         config=config, 
