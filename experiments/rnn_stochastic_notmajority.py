@@ -6,18 +6,6 @@ from mindreadingautobots.models import rnn, hyperparameters
 
 def main():
     """Run the hyperparameter search for the RNN with this dataset"""
-    # config = {
-    #         "hidden_size": tune.choice([16, 32, 64]),
-    #         "num_layers": tune.choice([1, 2, 3]),
-    #         "lr": tune.loguniform(1e-4, 1e-1),
-    #         "epochs": 100,
-    #     }
-    config = {
-            "hidden_size": tune.choice([16, 32]),
-            "num_layers": tune.choice([1 ]),
-            "lr": [1e-4],
-            "epochs": 100,
-        }    
     
     # DATA LOADING
     seed = 334
@@ -30,12 +18,30 @@ def main():
     # Insert feature dimension (1 for scalar bits), and convert to tensor
     stochastic_majority_data = torch.tensor(X).float().unsqueeze(-1) 
 
+
+    config = {
+            "hidden_size": 4,
+            "num_layers": 2,
+            "lr": 1e-4,
+            "epochs": 100,
+        } 
+    rnn.train_binary_rnn(config, stochastic_majority_data)
+
+    return 
+    # HYPERPARAMETER SEARCH
+    config = {
+            "hidden_size": tune.choice([16, 32]),
+            "num_layers": tune.choice([1, 2]),
+            "lr": tune.loguniform(1e-4, 1e-3),
+            "epochs": 100,
+        } # NOTE: you can't just replace these with a list with a single element, or tune.choice([1])...
+    
     hyperparameters.tune_hyperparameters(
         config=config, 
         training_function=rnn.train_binary_rnn, 
         data=stochastic_majority_data, 
         num_samples=10, 
-        gpus_per_trial=0
+        gpus_per_trial=1
     )
 
     # TODO: enable multiprocessing

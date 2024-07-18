@@ -1,4 +1,4 @@
-Install locally with `python -m pip install -e .` called from this directory. 
+Install locally with `python -m pip install -e .` called from this directory. Make sure to use a virtual environment!
 
 Directory structure is the following:
  - `data` contains (locally saved) data files; these are within-module for easy access by 

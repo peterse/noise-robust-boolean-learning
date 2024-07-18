@@ -58,14 +58,15 @@ def train_binary_rnn(config, data, checkpoint_dir=None):
     """
     # batch_size, epoch and iteration
     BATCH_SIZE = 10
-
     epochs = config["epochs"]
 
     # Data setup: WE have a fixed train/val split of 80/20
     n_train = int(len(data) * 0.8)
     data_loader = DataLoader(data[:n_train], batch_size=BATCH_SIZE, shuffle=True)
     val_data_loader = DataLoader(data[n_train:], batch_size=BATCH_SIZE, shuffle=False)
+    seq_len = data.shape[1]
 
+    print(config)
     # Model setup
     hidden = None # initial hidden state
     model = BinaryRNN(1, config["hidden_size"], 1, config["num_layers"])
@@ -85,6 +86,7 @@ def train_binary_rnn(config, data, checkpoint_dir=None):
             loss.backward()
             optimizer.step()
 
+
         # Validation loss gets reported to raytune
         val_loss = 0.0
         val_steps = 0
@@ -96,11 +98,20 @@ def train_binary_rnn(config, data, checkpoint_dir=None):
                 optimizer.zero_grad()
                 output, hidden = model(inputs, hidden) # output is of shape (batch_size*seq_length, 1)
                 _, predicted = torch.max(output.data, 1)
+                print(output)
+                print(output.shape)
                 correct += (predicted == target).sum().item()
 
                 # note, we are using BCEWithLogitsLoss, which contains a sigmoid activation already
                 loss = criterion(output,  target.reshape(-1, 1))
                 val_loss += loss.cpu().numpy()
                 val_steps += 1
-
-        train.report({"loss": (val_loss / val_steps)})
+                # also compute model mean accuracy on validation. Report all metrics in a single `report` call!
+            break
+        break
+        print(correct)
+        print(X_val.size())
+        print(BATCH_SIZE * seq_len * val_steps)
+        print()
+        train.report({"loss": (val_loss / val_steps),
+                      "mean_accuracy": correct / (BATCH_SIZE * seq_len * val_steps)})

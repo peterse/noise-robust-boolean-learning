@@ -14,7 +14,8 @@ def tune_hyperparameters(config, training_function, data, num_samples=10, n_cpus
         - `training_function` should not refer to anything outside its function scope.
     
     Args:
-        config: dictionary of ray[tune] hyperparameters to search over
+        config: dictionary of ray[tune] hyperparameters to search over. Contains
+            kwargs for the model (training_function).
         train_model: Signature of this: Input should be `config`, *args. We
             can pass any args by including them as kwargs in `tune.with_parameters`.
         num_samples: number of models to try for each hyperparameter configuration.
@@ -31,7 +32,7 @@ def tune_hyperparameters(config, training_function, data, num_samples=10, n_cpus
         reduction_factor=2)
 
     reporter = CLIReporter(
-        metric_columns=["loss", "training_iteration"],
+        metric_columns=["loss", "training_iteration", "mean_accuracy"],
         print_intermediate_tables=False,
         )
 
@@ -40,7 +41,10 @@ def tune_hyperparameters(config, training_function, data, num_samples=10, n_cpus
         scheduler=scheduler,
         )
         
-    run_config = RunConfig(progress_reporter=reporter)
+    run_config = RunConfig(
+        progress_reporter=reporter,
+        # stop={"training_iteration": config["epocs"], "mean_accuracy": 0.8},
+    )
     resources = tune.with_resources(
                 tune.with_parameters(training_function, data=data),
                 resources={"cpu": n_cpus, "gpu": gpus_per_trial}
