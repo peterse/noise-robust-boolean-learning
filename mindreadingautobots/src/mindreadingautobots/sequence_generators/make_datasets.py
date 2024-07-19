@@ -68,10 +68,9 @@ def parity_4lookback(n_data, n_bits, p_bitflip, seed):
 
 
 
+def sparse_parity_k_n(n, k, n_data, p_bitflip=0.0):
 
-
-def sparse_classification_k_n(n, k, n_data, p_bitflip):
-    """Generate a dataset where the final bit is a function of a subset k of the n bits.
+    """Generate a dataset where the final bit is the parity of a subset k of the n bits.
     
     Args:
         n: number of bits
@@ -79,16 +78,33 @@ def sparse_classification_k_n(n, k, n_data, p_bitflip):
         n_data: number of data points
         p_bitflip: probability of flipping a bit
     """
+    # TODO: add p_bitflip
+    dataset = []
+    subseq_idx = np.random.choice(np.arange(n - 1), k, replace=False)
+    in_subset = np.zeros(n-1, dtype=np.bool_)
+    in_subset[subseq_idx] = 1
 
-def sparse_parity_4_40(n_data, p_bitflip):
-    """Generate SPARSE PARITY classification data with 40 bits.
+    for _ in range(n_data):
+            
+        seq = [np.random.randint(0,2) for _ in range(n-1)]
+        
+        if np.sum(seq, where=in_subset) % 2 == 0:
+            new_seq = seq + [0]
+        else:
+            new_seq = seq + [1]
     
-    """
-    pass
+        dataset.append(new_seq)
+
+    return dataset
 
 
-def sparse_not_majority_4_40(n_data, p_bitflip):
-    """Generate SPARSE NOT-MAJORITY classification data with 40 bits.
+def spaerse_not_majority_k_n(n, k, n_data, p_bitflip=0.0):
+    """Generate a dataset where the final bit is a function of a subset k of the n bits.
     
+    Args:
+        n: number of bits
+        k: number of bits in the subset, to be chosen randomly.
+        n_data: number of data points
+        p_bitflip: probability of flipping a bit
     """
     pass
