@@ -19,21 +19,20 @@ def main():
     stochastic_majority_data = torch.tensor(X).float().unsqueeze(-1) 
 
 
-    config = {
-            "hidden_size": 4,
-            "num_layers": 2,
-            "lr": 1e-4,
-            "epochs": 100,
-        } 
-    rnn.train_binary_rnn(config, stochastic_majority_data)
+    # config = {
+    #         "hidden_size": 4,
+    #         "num_layers": 2,
+    #         "lr": 1e-4,
+    #         "epochs": 10,
+    #     } 
+    # rnn.train_binary_rnn(config, stochastic_majority_data)
 
-    return 
     # HYPERPARAMETER SEARCH
     config = {
             "hidden_size": tune.choice([16, 32]),
             "num_layers": tune.choice([1, 2]),
             "lr": tune.loguniform(1e-4, 1e-3),
-            "epochs": 100,
+            "epochs": 5,
         } # NOTE: you can't just replace these with a list with a single element, or tune.choice([1])...
     
     hyperparameters.tune_hyperparameters(
@@ -43,6 +42,8 @@ def main():
         num_samples=10, 
         gpus_per_trial=1
     )
+
+    return
 
     # TODO: enable multiprocessing
 
