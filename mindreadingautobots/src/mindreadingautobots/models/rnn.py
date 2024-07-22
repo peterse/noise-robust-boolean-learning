@@ -49,8 +49,17 @@ class BinaryRNN(nn.Module):
         
         return output, hidden
     
+    def predict(self, x, hidden):
+        """Predict the next bit given the current input and hidden state."""
+        self.eval()
+        batch_size, seq_length, _ = x.shape
+        output, _ = self.forward(x, hidden)
+        activation = torch.nn.functional.sigmoid(output).reshape(-1, 1)
+        predicted = (activation > 0.5).float()
+        return predicted.reshape(batch_size, seq_length, 1)
     
-def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False):
+    
+def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False, return_model=False):
     """Train the RNN from within a raytune context. 
     
     Everything in this function needs to be reachable from the scope
@@ -58,10 +67,18 @@ def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False):
 
     TODO: model checkpointing
 
+    Args:
+        config: raytune-compatible dictionary of hyperparameters
+
+    Returns:
+        model: the trained model
+        hidden: the hidden state for the trained model
+
     """
     # batch_size, epoch and iteration
     BATCH_SIZE = 10
     epochs = config["epochs"]
+    n_eval = config["n_eval"]
 
     # Data setup: WE have a fixed train/val split of 80/20
     n_train = int(len(data) * 0.8)
@@ -86,8 +103,8 @@ def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False):
             output, hidden = model(inputs, hidden) # output is of shape (batch_size*seq_length, 1)
             hidden = hidden.data # this is to prevent backpropagation through the entire dataset
             # note, we are using BCEWithLogitsLoss, which contains a sigmoid activation already
-            loss = criterion(output, target.reshape(-1, 1))
-            loss.backward()
+            train_loss = criterion(output, target.reshape(-1, 1))
+            train_loss.backward()
             optimizer.step()
 
 
@@ -96,20 +113,17 @@ def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False):
         val_steps = 0
         correct = 0
         model.eval()
-        for i, X_val in enumerate(val_data_loader, 0):
+        for _ in range(n_eval):
+            X_val = next(iter(val_data_loader))
             inputs_val = X_val[:, :-1,:]
             target_val = X_val[:, 1:,:]
             target_flat = target_val.reshape(-1, 1)
             optimizer.zero_grad()
             output_val, _ = model(inputs_val, hidden) # output is of shape (batch_size*seq_length, 1)
-            if verbose:
-                print(output_val)
-                print(output_val.shape)
             # Compute accuracy
-            # FIXME: this prediction scheme doesn't work because output has 
-            # already been flattened? do we need torch.sign?
-            _, predicted = torch.max(output_val.data, 1)
-            predicted = predicted.reshape(-1, 1)
+            # Convert the sigmoid output to a binary prediction
+            activation = torch.nn.functional.sigmoid(output_val).reshape(-1, 1)
+            predicted = (activation > 0.5).float()
             Z = (predicted == target_flat).long()
             correct += Z.sum().item()
 
@@ -117,15 +131,24 @@ def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False):
             loss = criterion(output_val,  target_flat)
             val_loss += loss.item()
             val_steps += 1
-            if verbose:
-                print(predicted.flatten())
-                print(target_flat.flatten())
+            if verbose and False:
+                print("output", output_val.flatten())
+                print(output_val.shape)
+                print("act", activation.flatten())
+                print("predicted", predicted.flatten())
+                print("target", target_flat.flatten())
         # if val_steps > 4: # for mini-batching on the validation set
         #     break
 
         # Report all metrics in a single `report` call!
-        metrics = {"loss": (val_loss / val_steps),
-                      "mean_accuracy": correct / (BATCH_SIZE * seq_len * val_steps)}
+        metrics = {
+                    "loss": (val_loss / val_steps),
+                    "mean_accuracy": correct / (BATCH_SIZE * seq_len * val_steps),
+                    "train_loss": train_loss.item()
+                    }
         train.report(metrics)
         if verbose:
             print(metrics)
+
+    if return_model:
+        return (model, hidden)
