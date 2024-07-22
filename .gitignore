@@ -8,6 +8,7 @@
 *.pyc
 *.ipynb_checkpoints
 *.DS_Store
+datasets/*
 
 .venv/
 .env

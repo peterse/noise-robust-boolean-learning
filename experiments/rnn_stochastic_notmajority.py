@@ -31,7 +31,6 @@ def main():
         } 
     rnn.train_binary_rnn(config, stochastic_majority_data, verbose=True)
 
-    return 
     # HYPERPARAMETER SEARCH
     # # NOTE: you can't just replace these with a list with a single element, or tune.choice([1])...
     # config = {
@@ -40,7 +39,7 @@ def main():
     #         "lr": tune.loguniform(1e-4, 1e-3),
     #         "epochs": 100,
     #     } 
-    
+
     hyperparameters.tune_hyperparameters(
         config=config, 
         training_function=rnn.train_binary_rnn, 
@@ -48,6 +47,8 @@ def main():
         num_samples=10, 
         gpus_per_trial=1
     )
+
+    return
 
     # TODO: enable multiprocessing
 
