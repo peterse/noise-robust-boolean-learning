@@ -25,9 +25,10 @@ def main():
     print(stochastic_majority_data.shape)
     config = {
             "hidden_size": 64,
-            "num_layers": 4,
-            "lr": 3e-5,
+            "num_layers": 6,
+            "lr": 5e-5,
             "epochs": 1000,
+            "n_eval": 4 # number of batches to do validation loss for
         } 
     rnn.train_binary_rnn(config, stochastic_majority_data, verbose=True)
 
