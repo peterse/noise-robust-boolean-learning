@@ -115,7 +115,7 @@ class TransformerDecoder(nn.Module):
                                 embedding = nn.Embedding(self.vocab_size, self.d_model),
                                 positional_encoding = pos_emb,
                                 drop = nn.Dropout(self.dropout),
-                                decoder = core_encoder_or_decoder,
+                                transformer_core = core_encoder_or_decoder,
                                 normalization = nn.LayerNorm(self.d_model, bias=self.bias)))
         
         self.linear_output_layer = nn.Linear(self.d_model, self.vocab_size, bias=False)
@@ -172,9 +172,9 @@ class TransformerDecoder(nn.Module):
 
         if self.mode == 'decoder':
             tgt_mask = nn.Transformer.generate_square_subsequent_mask(sequence_lenght)
-            x = self.transformer.decoder(x, blank_mem, tgt_mask=tgt_mask)
+            x = self.transformer.transformer_core(x, blank_mem, tgt_mask=tgt_mask)
         elif self.mode == 'encoder':
-            x = self.transformer.decoder(x)
+            x = self.transformer.transformer_core(x)
         x = self.transformer.normalization(x)
 
         if targets is not None:
@@ -210,11 +210,21 @@ def shift_and_append(raw_data, shift_step=1):
 
     
     
-def train_loop(config, data, checkpoint_dir=None):
+def train_loop(config, data, verbose=False, return_model=False, return_data=False):
     """Train the transformer (decoder-only or encoder-only) from within a raytune context. 
     
         Everything in this function needs to be reachable from the scope
         of a raytune process called from wherever you're calling it from.
+
+        Arguments:
+            config: dict, the configuration dictionary
+            data: np.array, the data to be used for training
+            verbose: bool, whether to print the training loss for each epoch
+            return_model: bool, whether to return the trained model
+            return_data: bool, whether to return the data
+
+        Returns:
+            None or model: None or the trained model
     """
     # batch_size, epoch and iteration
     epochs = config["epochs"]
@@ -245,7 +255,7 @@ def train_loop(config, data, checkpoint_dir=None):
     seq_len = data.shape[1]
 
 
-    model = TransformerDecoder(context_size,  vocab_size, n_layer, n_head, d_model, dropout, d_ff, activation, standard_positional_encoding, 
+    model = TransformerDecoder(context_size, vocab_size, n_layer, n_head, d_model, dropout, d_ff, activation, standard_positional_encoding, 
                               loss_type, bias, tie_weights, embedding, mode)
     
     model = model.to(device)
@@ -253,8 +263,10 @@ def train_loop(config, data, checkpoint_dir=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
 
     for epoch in range(epochs):  # You can adjust the number of epochs
+
         model.train()
         total_train_loss = 0
+
         for batch in data_loader:
         
             X, y = batch
@@ -266,7 +278,7 @@ def train_loop(config, data, checkpoint_dir=None):
             loss.backward()
             optimizer.step()
     
-        total_train_loss += loss.detach().item()
+            total_train_loss += loss.detach().item()
 
         total_val_loss = 0
         model.eval()
@@ -281,3 +293,18 @@ def train_loop(config, data, checkpoint_dir=None):
         
 
         train.report({"loss": (total_val_loss / len(val_data_loader))})
+
+        if verbose:
+            print(f"Epoch {epoch}, train loss: {total_train_loss/len(data_loader)}, val loss: {total_val_loss/len(val_data_loader)}")
+
+    if return_model and return_data:
+        return (model, data_loader, val_data_loader)
+    
+    elif return_model:
+        return model
+    
+    elif return_data:
+        return (data_loader, val_data_loader)
+    
+    else:
+        return None

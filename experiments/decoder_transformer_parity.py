@@ -2,7 +2,10 @@ import torch
 from ray import tune
 
 from mindreadingautobots.sequence_generators import make_datasets
-from mindreadingautobots.models import decoder_transformer, hyperparameters  
+from mindreadingautobots.models import decoder_transformer, hyperparameters
+
+
+RUN_HYPERPARAMETER_SEARCH = False
 
 def main():
     """Run the hyperparameter search for the RNN with this dataset"""
