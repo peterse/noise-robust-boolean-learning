@@ -6,6 +6,14 @@ import numpy as np
 def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, seed):
     """Abstract function for _specific_ k-lookback boolean function.
     
+    The data generation works in 4 steps:
+     1. Generate a length-k uniformly random seed string
+     2. Recursively generate n+k additional bits
+     3. Remove the seed bits
+     4. Keep only a length-n contiguous substring of the n+k generated bits
+
+    Using this scheme, we can generate all of the 
+
     Args:
         transition_matrix: dict with (k+1) entries, corresponding to probability of 1
                            given the weight of the previous k bits. keys are integers
@@ -20,7 +28,7 @@ def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, s
     assert n_bits > k
     
     np.random.seed(seed)
-    X = np.random.randint(0, 2, size=(n_data, n_bits))
+    X = np.random.randint(0, 2, size=(n_data + k, n_bits))
     Z = None
     for i in range(n_data):
         for j in range(k, n_bits):

@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import unicodedata
 from collections import OrderedDict
-from mindreadingautobots.rnn_pipeline.utils.sentence_processing import sents_to_idx, idxs_to_sent
+from mindreadingautobots.utils.sentence_processing import sents_to_idx, idxs_to_sent
 import pickle
 
 
@@ -92,5 +92,39 @@ class Sampler(object):
 
 
 
+class SamplerIter(object):
+	# I don't know what this does
+	def __init__(self, voc, batch_size):
+		
+		self.batch_size = batch_size
+		self.voc = voc
+		self.sidx = [2, 9, 23, 36]
+		# self.sidx = [2, 9]
+		self.len = 40
+		# self.data =corpus.data
+		
+
+	def get_batch(self):
+		endsym=  's'
+		word_batch = sample_blist(self.batch_size, self.len)
+		labels = [check_sparse_parity(x, self.sidx) for x in word_batch]
+
+		word_batch = [list(x.strip()+endsym) for x in word_batch]
+
+		target_batch = torch.tensor(labels).type(torch.int64)		
+		word_lens= torch.tensor([len(x) for x in word_batch], dtype = torch.long)
+
+		try:
+			batch_ids= sents_to_idx(self.voc, word_batch)
+		except:
+			pdb.set_trace()
+
+		source = batch_ids[:,:-1].transpose(0,1)
+		targets= target_batch.clone()
+		
+		return source, targets, word_lens
+
+	def __len__(self):
+		return len(self.data)
 
 

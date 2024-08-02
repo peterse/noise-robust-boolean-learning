@@ -6,13 +6,14 @@ import ipdb as pdb
 import math
 from torch import linalg as LA
 import random
+from collections import Counter
 
 
 def gen_rand_binstr(length=40):
     return ''.join([random.choice(['1','0']) for _ in range(length)])
 
 
-def sample_bstr(data_size = 1000, length=20):
+def sample_bstr(data_size = 1000, length=40):
     lines= set()
     size=0
     while size < data_size:
@@ -21,6 +22,14 @@ def sample_bstr(data_size = 1000, length=20):
         size= len(lines)
     
     lines = list(lines)
+    return lines
+
+def sample_blist(data_size = 1000, length=40):
+    lines= []
+    for i in range(data_size):
+        inp = gen_rand_binstr(length=length)
+        lines.append(inp)
+
     return lines
 
 
@@ -33,6 +42,13 @@ def flip_i(bstr, idx):
     
     return ''.join(lstr)
 
+
+def check_sparse_parity(s, idx = [1,9,14]):
+    subs = ''
+    for i in idx:
+        subs += s[i]
+    counter = Counter(subs)
+    return int(counter['1'] %2 == 0)
 
 
 def hamming_one(binstr):
@@ -61,14 +77,53 @@ def hamming_two(binstr):
     return ham_str
 
 
+########## Distance from Initialization #################
+
+def model_dist(curr_model, init_model, pos=False, weight_only=False):
+    dist= 0.0
+    keys = list(curr_model.state_dict().keys())
+    if not pos:
+        keys = [key for key in curr_model.state_dict().keys() if 'pos_encoder' not in key]
+    
+    if weight_only:
+        keys = [key for key in curr_model.state_dict().keys() if 'weight' in key or 'bias' in key]
+    
+    init_params= init_model.state_dict()
+    curr_params= curr_model.state_dict()
+    
+    for key in keys:
+        assert key in init_model.state_dict().keys()
+        x = curr_params[key] - init_params[key]
+        
+        if len(x.size())>1:
+            if len(x.size())>2:
+                x = x.squeeze()
+                assert len(x.size())==2
+                
+            norm = LA.matrix_norm(x, ord='fro')
+        else:
+            norm = LA.vector_norm(x, ord=2)
+        
+        # print(key, '\t', norm)
+
+        dist += norm**2
+    
+    dist= math.sqrt(dist)
+    return dist
+
+
+
+
+############### Vocab and Sents to idx #############
+
 class Vocab:
     def __init__(self):
         # self.w2id= {'</s>': 0, '1':1, '0':2 }
         # self.id2w = {0:'</s>', 1:'1', 2: '0'}
         # self.w2id= {'1':1, '0':0 }
         # self.id2w = { 1:'1', 0: '0'}
-        self.w2id= {'1':1, '0':0 , 'p':2}
-        self.id2w = { 1:'1', 0: '0', 2:'p'}
+        self.w2id= {'1':1, '0':0 , 's':2, 'p':3}
+        self.id2w = { 1:'1', 0: '0', 2:'s', 3:'p'}
     
     def get_id(self, word):
         return self.w2id[word]
@@ -82,10 +137,7 @@ class Vocab:
             ids.append(self.get_id(j))
         
         return ids
-
-
-
-global padsym
+    
 padsym=  'p'
 def sent_to_idx(voc, sent, max_length):
     idx_vec = []
@@ -114,4 +166,3 @@ def sents_to_idx(voc, sents):
 def pad_seq(seq, max_length, voc):
     seq += [voc.get_id(padsym) for i in range(max_length - len(seq))]
     return seq
-

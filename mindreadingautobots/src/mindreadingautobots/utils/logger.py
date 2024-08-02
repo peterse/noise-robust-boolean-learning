@@ -49,8 +49,6 @@ def store_results(config, val_score, train_acc, best_epoch):
 	, 'train_acc' : train_acc
 	, 'best_epoch' : best_epoch
 	, 'dataset' : config.dataset
-	, 'emb_size': config.emb_size
-	, 'hidden_size' : config.hidden_size
 	, 'depth' : config.depth
 	, 'dropout' : config.dropout
 	, 'lr' : config.lr
@@ -58,6 +56,17 @@ def store_results(config, val_score, train_acc, best_epoch):
 	, 'epochs' : config.epochs
 	, 'opt' : config.opt
 	}
+	try:
+		data['emb_size'] = config.emb_size
+		data['hidden_size'] = config.hidden_size
+	except AttributeError:
+		pass
+	try:
+		data['heads'] = config.heads
+		data['d_model'] = config.d_model
+	except AttributeError:
+		pass
+	
 	# res_data.update(data)
 	res_data[str(config.run_name)] = data
 

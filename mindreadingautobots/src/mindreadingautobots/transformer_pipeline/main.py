@@ -17,11 +17,12 @@ except ImportError:
 import wandb
 from ray import tune
 
-from mindreadingautobots.rnn_pipeline.args import build_parser
+from mindreadingautobots.transformer_pipeline.args import build_parser
+from mindreadingautobots.transformer_pipeline.model_iter import build_model, train_model, tune_model
+
 from mindreadingautobots.utils.dataloader import Corpus, Sampler
 from mindreadingautobots.utils.helper import Voc, gpu_init_pytorch, create_save_directories, get_latest_checkpoint, count_parameters
 from mindreadingautobots.utils.logger import get_logger
-from mindreadingautobots.rnn_pipeline.model import build_model, train_model, tune_model
 from mindreadingautobots.models import hyperparameters
 
 
@@ -178,16 +179,19 @@ def main():
 		### Wandb Initialization ###
 		if config.wandb:
 			metrics = dict(
-				num_params= num_params,
+				num_params = num_params,
 				learning_rate = config.lr,
-				hidden_size= config.hidden_size,
 				depth= config.depth,
-				emb_size = config.emb_size,
+				d_model = config.d_model,
+				heads= config.heads,
 				dataset= config.dataset,
 				dropout= config.dropout,
 				optimizer =config.opt,
 				epochs = config.epochs,
 				batch_size= config.batch_size,
+				iter_mode= config.itr,
+				seed= config.seed,
+				mask= config.mask,
 			)
 			
 			wandb.init(
