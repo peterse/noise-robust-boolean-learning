@@ -211,20 +211,23 @@ def main():
 		# this config because it would be like pulling teeth.
 		# hyper_config = {
 		# 	'lr': tune.loguniform(1e-4, 1e-1),
-		# 	'hidden_size': tune.choice([16, 32, 64, 128]),
-		# 	'depth': tune.choice([1, 2, 3]),
 		# }
 		hyper_config = {
 			'lr': tune.choice([1e-4]),
-			'hidden_size': tune.choice([32]),
-			'depth': tune.choice([1]),
+			'd_model': tune.choice([32]),
+			'depth': tune.choice([1, 2]),
+			'd_ffn': tune.choice([64]),
+			'heads':tune.choice([2])
 		}
-		# this set of configs should contain only model hyperparameters
-		# FIXME: This isn't assigning cpu's correctly, currently it runs on
-		# all 8/8 cpus available...?
+
+		# The way raytune distributes compute resources is to use all possible resources,
+		# then maximize the number of trials such that cpus/gpus per worker below are satisfied.
+		# To avoid overutilization, set `max_concurrent_trials`
+		# https://docs.ray.io/en/latest/tune/tutorials/tune-resources.html
 		hyper_settings = {
-			"n_cpus": 1,
-			"gpus_per_trial": 0,
+			"cpus_per_worker": 0,
+			"gpus_per_worker": 1,
+			"max_concurrent_trials": 1,
 			"epochs": 100,
 			"num_samples": 10,
 		}

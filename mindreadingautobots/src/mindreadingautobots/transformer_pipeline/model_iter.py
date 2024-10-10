@@ -51,7 +51,7 @@ class SeqClassifier(nn.Module):
 
 	def _initialize_model(self):
 
-		self.config.d_ff = 2*self.config.d_model
+		# self.config.d_ff = 2*self.config.d_model # uh this attr was spelled wrong when I found it, yikes?
 
 		self.model = TransformerCLF(self.voc.nwords, self.config.nlabels, self.config.d_model,
 		self.config.heads, self.config.d_ffn, self.config.depth, 
@@ -110,7 +110,6 @@ class SeqClassifier(nn.Module):
 def build_model(config, voc, device, logger):
 	model = SeqClassifier(config, voc, device, logger)
 	model = model.to(device)
-
 	return model
 
 
@@ -248,6 +247,8 @@ def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader
 	model = build_model(config, voc, device, logger)
 	train_model(model, train_loader, val_loader, voc, device, config, logger, epoch_offset, min_val_loss, max_val_acc)
 
+def trial_dirname_creator(trial):
+    return f"{trial.trainable_name}_{trial.trial_id}"
 
 def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc, 
 				config, logger, epoch_offset= 0, min_val_loss=1e7, 
@@ -269,21 +270,16 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 
 	tune_config = tune.TuneConfig(
 		num_samples=hyper_settings.get("num_samples"),
+		trial_dirname_creator=trial_dirname_creator,
 		scheduler=scheduler,
+		max_concurrent_trials=hyper_settings.get("max_concurrent_trials"),
 		)
 		
 	run_config = RunConfig(
 		progress_reporter=reporter,
 		# stop={"training_iteration": config["epocs"], "mean_accuracy": 0.8},
 	)
-	# # pdb.set_trace()
-	# for v in [model, train_loader, val_loader, voc, device, config, logger]:
-	# 	print("checking object", v)
-	# 	print(inspect_serializability(v))
-	# 	print()
-
-	resources = tune.with_resources(
-				tune.with_parameters(
+	trainable = tune.with_parameters(
 					build_and_train_model_raytune, 
 					config=config,
 					train_loader=train_loader,
@@ -293,8 +289,11 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 					epoch_offset=epoch_offset,
 					min_val_loss=min_val_loss,
 					max_val_acc=max_val_acc
-					),
-				resources={"cpu": hyper_settings.get("n_cpus"), "gpu": hyper_settings.get("gpus_per_trial")}
+					)
+	
+	resources = tune.with_resources(
+		trainable,
+		{"cpu": hyper_settings.get("cpus_per_worker"), "gpu": hyper_settings.get("gpus_per_worker")},
 	)
 	
 	tuner = Tuner(

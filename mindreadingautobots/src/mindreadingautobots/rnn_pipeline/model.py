@@ -244,6 +244,10 @@ def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader
 	train_model(model, train_loader, val_loader, voc, device, config, logger, epoch_offset, min_val_loss, max_val_acc)
 
 
+def trial_dirname_creator(trial):
+    return f"{trial.trainable_name}_{trial.trial_id}"
+
+
 def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc, 
 				config, logger, epoch_offset= 0, min_val_loss=1e7, 
 				max_val_acc=0.0):	
@@ -265,6 +269,8 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 	tune_config = tune.TuneConfig(
 		num_samples=hyper_settings.get("num_samples"),
 		scheduler=scheduler,
+		trial_dirname_creator=trial_dirname_creator,
+		max_concurrent_trials=hyper_settings.get("max_concurrent_trials"),
 		)
 		
 	run_config = RunConfig(
@@ -289,9 +295,9 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 					min_val_loss=min_val_loss,
 					max_val_acc=max_val_acc
 					),
-				resources={"cpu": hyper_settings.get("n_cpus"), "gpu": hyper_settings.get("gpus_per_trial")}
+				resources={"cpu": hyper_settings.get("cpus_per_worker"), "gpu": hyper_settings.get("gpus_per_worker")}
 	)
-	
+
 	tuner = Tuner(
 		resources,
 		param_space=hyper_config,

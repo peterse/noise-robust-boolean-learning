@@ -219,8 +219,9 @@ def main():
 		# FIXME: This isn't assigning cpu's correctly, currently it runs on
 		# all 8/8 cpus available...?
 		hyper_settings = {
-			"n_cpus": 1,
-			"gpus_per_trial": 0,
+			"cpus_per_worker": 1,
+			"gpus_per_worker": 0,
+			"max_concurrent_trials": 1,
 			"epochs": 100,
 			"num_samples": 10,
 		}

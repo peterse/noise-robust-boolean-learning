@@ -4,13 +4,12 @@ import numpy as np
 
 
 def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, seed):
-    """Abstract function for _specific_ k-lookback boolean function.
+    """Abstract function for _specific_ k-lookback boolean function of bitstring _weight_.
     
     The data generation works in 4 steps:
      1. Generate a length-k uniformly random seed string
      2. Recursively generate n+k additional bits
-     3. Remove the seed bits
-     4. Keep only a length-n contiguous substring of the n+k generated bits
+     3. Remove the seed bits, leaving just an (n_data, n_bits) array
 
     Using this scheme, we can generate all of the 
 
@@ -28,17 +27,24 @@ def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, s
     assert n_bits > k
     
     np.random.seed(seed)
-    X = np.random.randint(0, 2, size=(n_data + k, n_bits))
+    X = np.random.randint(0, 2, size=(n_data, n_bits + k))
     Z = None
     for i in range(n_data):
-        for j in range(k, n_bits):
+        for j in range(k, n_bits + k):
             weight = np.sum(X[i, j-k:j])
             X[i, j] = np.random.binomial(1, transition_matrix[weight])
     if p_bitflip > 0:
         flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
         Z = np.logical_xor(X, flips).astype(int)
+        Z = Z[:,k:]
+        
+    return X[:,k:], 
 
-    return X, Z
+
+# def k_choose_m_forecast_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, seed):
+#     assert len(transition_matrix) == k + 1
+#     assert np.all([0 <= v <= 1 for v in transition_matrix.values()])
+#     assert n_bits > k
 
 
 def k_lookback_weight_dataset_mixed_genfuncs(k, n_data, n_bits, p_bitflip, seed):
@@ -118,7 +124,6 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
 
     """
     np.random.seed(seed)
-    # TODO: add p_bitflip
     subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
     
     in_subset = np.zeros(n_bits-1, dtype=np.bool_)
