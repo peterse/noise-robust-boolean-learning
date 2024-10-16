@@ -209,9 +209,6 @@ def main():
 	elif is_tune:
 		# Hyperparameter tuning happens here. I don't use command line inputs for
 		# this config because it would be like pulling teeth.
-		# hyper_config = {
-		# 	'lr': tune.loguniform(1e-4, 1e-1),
-		# }
 		hyper_config = {
 			'lr': tune.choice([1e-4]),
 			'd_model': tune.choice([32]),

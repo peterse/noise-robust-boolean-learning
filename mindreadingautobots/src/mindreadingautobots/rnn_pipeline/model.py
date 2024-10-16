@@ -255,10 +255,11 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 	
 	# config should have tune=True
 	scheduler = ASHAScheduler(
-		metric="train_loss",
-		mode="min",
-		max_t=hyper_settings.get("epochs"), # I'm not sure what this kwarg does and neither is the documentation
-		grace_period=1,
+		time_attr="training_iteration",
+		metric="val_acc",
+		mode="max",
+		max_t=hyper_settings.get("max_iterations"), # I'm not sure what this kwarg does and neither is the documentation
+		grace_period=hyper_settings.get("grace_period"), 
 		reduction_factor=2)
 
 	reporter = CLIReporter(
@@ -275,7 +276,7 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 		
 	run_config = RunConfig(
 		progress_reporter=reporter,
-		# stop={"training_iteration": config["epocs"], "mean_accuracy": 0.8},
+		# stop={"training_iteration": config.epochs, "val_acc": 0.80},
 	)
 	# # pdb.set_trace()
 	# for v in [model, train_loader, val_loader, voc, device, config, logger]:

@@ -46,7 +46,9 @@ class SeqClassifier(nn.Module):
 			self.logger.debug('Initalizing Optimizer and Criterion...')
 		self._initialize_optimizer()
 
-		self.criterion = nn.NLLLoss()
+		# self.criterion = nn.NLLLoss()
+		# Use this to save computation, the model does not compute softmax.
+		self.criterion = torch.nn.CrossEntropyLoss()
 	
 
 	def _initialize_model(self):
@@ -277,7 +279,7 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 		
 	run_config = RunConfig(
 		progress_reporter=reporter,
-		# stop={"training_iteration": config["epocs"], "mean_accuracy": 0.8},
+		stop={"training_iteration": config["epochs"], "mean_accuracy": 0.8},
 	)
 	trainable = tune.with_parameters(
 					build_and_train_model_raytune, 

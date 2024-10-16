@@ -205,16 +205,16 @@ def main():
 	elif is_tune:
 		# Hyperparameter tuning happens here. I don't use command line inputs for
 		# this config because it would be like pulling teeth.
-		# hyper_config = {
-		# 	'lr': tune.loguniform(1e-4, 1e-1),
-		# 	'hidden_size': tune.choice([16, 32, 64, 128]),
-		# 	'depth': tune.choice([1, 2, 3]),
-		# }
 		hyper_config = {
-			'lr': tune.choice([1e-4]),
-			'hidden_size': tune.choice([32]),
-			'depth': tune.choice([1]),
+			'lr': tune.loguniform(1e-4, 1e-1),
+			'hidden_size': tune.choice([16, 32, 64, 128]),
+			'depth': tune.choice([1, 2, 3]),
 		}
+		# hyper_config = {
+		# 	'lr': tune.choice([1e-4]),
+		# 	'hidden_size': tune.choice([32]),
+		# 	'depth': tune.choice([1]),
+		# }
 		# this set of configs should contain only model hyperparameters
 		# FIXME: This isn't assigning cpu's correctly, currently it runs on
 		# all 8/8 cpus available...?
@@ -222,8 +222,9 @@ def main():
 			"cpus_per_worker": 1,
 			"gpus_per_worker": 0,
 			"max_concurrent_trials": 1,
-			"epochs": 100,
-			"num_samples": 10,
+			"grace_period": 25, # minimum epochs to give each trial
+			"max_iterations": 200,
+			"num_samples": 5,
 		}
 
 		min_val_loss = torch.tensor(float('inf')).item()

@@ -1,6 +1,151 @@
 """make_datasets_final.py - Generate the datasets used for Part 1 of the analysis"""
 import itertools
 import numpy as np
+import networkx as nx
+import itertools
+
+def k_choose_m_transition_forecast_dataset(transition_func, k, m, n_data, n_bits, p_bitflip, seed, subseq_idx):
+    """Generate a dataset of forecast data with a k-choose-m-hamilton scheme.
+
+    The scheme is as follows:
+    - The first k bits are randomly generated
+    - A subset of m bits is chosen randomly
+    - Each subsequent bit is determined by transition_func acting on a length-m prefix;
+        the length-m prefix is the size-m subsequence of the k previous bits
+    - If bitflip is nonzero, all the bits in the range [k:-1] are flipped with probability p_bitflip.
+        The final bit is not flipped and the seed bits are not flipped.
+
+
+    Note: We do not remove nor noise up the seed bits, as these serve as a kind of 'function label' for 
+        the rest of the sequence
+    
+    Args:
+        transition_func: A function with inputs as int-sequences of length m and return value of 0 or 1
+        n_bits: TOTAL number of bits (including final bit)
+        k: amount of lookback
+        m: number of bits in the subset of lookback, to be chosen randomly.
+        n_data: number of data points
+        p_bitflip: probability of flipping a bit of INPUT data - 
+            We do not apply label noise with this bitflip!
+
+    returns:
+        X: (n_data, n_bits) array of noiseless data
+        Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
+
+    """
+    np.random.seed(seed)
+
+    assert len(subseq_idx) == m
+    assert n_bits > k
+    assert n_data > 2 ** k
+
+    subseq_idx = np.sort(np.array(subseq_idx))
+
+    # in_subset = np.zeros(n_bits-1, dtype=np.bool_)
+    # in_subset[subseq_idx] = 1
+
+    # attempt to initially generate the data efficiently
+    unq_entries = np.zeros((2**k, n_bits), dtype=int)
+    # iterate over all unique bitstrings of length k
+    for i, bits in enumerate(itertools.product('01', repeat=k)):
+        unq_entries[i, :k] = np.array([int(x) for x in bits])
+        for j in range(k, n_bits):
+            prefix = unq_entries[i, j-k:j]
+            targets = prefix[subseq_idx]
+            unq_entries[i, j] = transition_func(targets)
+    
+    # now generate more data by randomly selecting from the unique entries
+    resample_idx = np.random.choice(np.arange(2**k), size=n_data, replace=True)
+    X = unq_entries[resample_idx]
+    # shuffle X
+    np.random.shuffle(X)
+
+    Z = None
+    # X = np.random.randint(0, 2, size=(n_data, n_bits))
+    # for i in range(n_data):
+    #     for j in range(k, n_bits):
+    #         prefix = X[i, j-k:j]
+    #         targets = prefix[subseq_idx]
+    #         X[i, j] = transition_func(targets)
+    if p_bitflip > 0:
+        # flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits - 1 - k))
+        # Z = np.copy(X)
+        # Z[:,k:-1] = np.logical_xor(X[:,k:-1], flips).astype(int)
+        flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits - 1))
+        Z = np.copy(X)
+        Z[:,:-1] = np.logical_xor(X[:,:-1], flips).astype(int)
+    return X, Z, subseq_idx
+
+
+def construct_graph(k):
+    G = nx.DiGraph()
+    
+    # Generate all k-bit bitstrings
+    vertices = [''.join(bits) for bits in itertools.product('01', repeat=k)]
+    G.add_nodes_from(vertices)
+    
+    # Add edges based on the given rule
+    for u in vertices:
+        suffix = u[1:]
+        for b in '01':
+            v = suffix + b
+            if v in G:
+                G.add_edge(u, v)
+    return G
+
+
+def find_hamiltonian_cycle(G):
+    n = len(G.nodes)
+    path = []
+    visited = set()
+    
+    def backtrack(current_node):
+        if len(path) == n:
+            # Check if there is an edge from the last node to the first node to form a cycle
+            if path[0] in G.successors(current_node):
+                path.append(path[0])
+                return True
+            else:
+                return False
+
+        for neighbor in G.successors(current_node):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                path.append(neighbor)
+                if backtrack(neighbor):
+                    return True
+                visited.remove(neighbor)
+                path.pop()
+        return False
+    
+    for start_node in G.nodes:
+        path = [start_node]
+        visited = {start_node}
+        if backtrack(start_node):
+            return path
+    return None
+
+
+def k_choose_m_hamilton_forecast_dataset(k, m, n_data, n_bits, p_bitflip, seed, subseq_idx=None):
+
+    # indices are relative to the bit being determined, not absolute
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(k), m, replace=False)
+    # Construct a Hamilton cycle on m-bit prefixes
+    G = construct_graph(m)
+    hamiltonian_cycle = find_hamiltonian_cycle(G)
+    mapping = {}
+    for i in range(len(hamiltonian_cycle) - 1):
+        u, v = hamiltonian_cycle[i], hamiltonian_cycle[i + 1]
+        mapping[u] = v[-1]
+
+    # construct a transition function
+    def func(arr):
+        s = ''.join([str(x) for x in arr])
+        out = int(mapping.get(s))
+        return out
+
+    return k_choose_m_transition_forecast_dataset(func, k, m, n_data, n_bits, p_bitflip, seed, subseq_idx)
 
 
 def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, seed):

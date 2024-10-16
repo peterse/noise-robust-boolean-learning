@@ -34,3 +34,10 @@ $	python -m main -mode tune -dataset sparse_parity_k4_nbits10_n5000_bf0_seed1234
 ```
  _if I have a d_ffn kwarg in `hyper_config`, the above "32" will be ignored!!
 
+
+
+
+# # WORKSPACE, TEMPORARY TRASH STUFF
+
+python -m main -mode train -gpu 0 -dataset hamilton_6_choose_4_nbits16_n2000_bf20_seed1234 -run_name 0 \
+-model_type SAN -depth 2 -heads 4 -lr 0.001 -d_model 32 -d_ffn 32 
