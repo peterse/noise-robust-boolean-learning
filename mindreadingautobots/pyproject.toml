@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "mindreadingautobots"
 version = "0.0.1"
 authors = []
+dynamic = ["dependencies"]
 
 description = ""
 readme = "README.md"
@@ -19,3 +20,6 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/pypa/sampleproject"
 Issues = "https://github.com/pypa/sampleproject/issues"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

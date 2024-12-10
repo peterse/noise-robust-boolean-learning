@@ -15,6 +15,9 @@ except ImportError:
 	import pickle
 
 import wandb
+import ray
+# https://github.com/ray-project/ray/issues/30012#issuecomment-1305006855 I guess
+ray.init(include_dashboard=False, num_cpus=20, num_gpus=0, _temp_dir=None, ignore_reinit_error=True)
 from ray import tune
 
 from mindreadingautobots.rnn_pipeline.args import build_parser
@@ -205,6 +208,7 @@ def main():
 	elif is_tune:
 		# Hyperparameter tuning happens here. I don't use command line inputs for
 		# this config because it would be like pulling teeth.
+		# TODO: this doesn't do what i think it does.
 		hyper_config = {
 			'lr': tune.loguniform(1e-4, 1e-1),
 			'hidden_size': tune.choice([16, 32, 64, 128]),
@@ -219,12 +223,12 @@ def main():
 		# FIXME: This isn't assigning cpu's correctly, currently it runs on
 		# all 8/8 cpus available...?
 		hyper_settings = {
-			"cpus_per_worker": 1,
+			"cpus_per_worker": 2,
 			"gpus_per_worker": 0,
-			"max_concurrent_trials": 1,
+			"max_concurrent_trials": 20,
 			"grace_period": 25, # minimum epochs to give each trial
 			"max_iterations": 200,
-			"num_samples": 5,
+			"num_samples": 60,
 		}
 
 		min_val_loss = torch.tensor(float('inf')).item()

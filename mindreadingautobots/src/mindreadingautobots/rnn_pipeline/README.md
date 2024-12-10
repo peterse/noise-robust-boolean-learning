@@ -32,5 +32,8 @@ $	python -m main -mode tune -dataset sparse_parity_k4_n5000_bf0_seed1234  \
 
 
 # workspace, temp, trash
-$	python -m main -mode train -gpu 0 -dataset hamilton_6_choose_4_nbits16_n2000_bf20_seed1234 -run_name 0 \
+$ python -m main -mode train -gpu 0 -dataset hamilton_6_choose_4_nbits16_n2000_bf20_seed1234 -run_name 0 \
 -model_type RNN -cell_type LSTM -depth 1 -lr 0.001 -emb_size 128 -hidden_size 128 
+
+
+$	python -m main -mode tune -dataset hamilton_6_choose_4_nbits16_n2000_bf20_seed1234 -cell_type LSTM | hyperparameters.log
