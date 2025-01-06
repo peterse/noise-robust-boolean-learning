@@ -4,31 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import ipdb as pdb
 
-
-class TokenEmbedding(nn.Module):
-    """from https://pytorch.org/tutorials/beginner/translation_transformer.html
-    
-        Args:
-            vocab_size: (int) number of tokens in alphabet
-            emb_size: (int) model dimension
-    """
-    def __init__(self, vocab_size, emb_size):
-        super(TokenEmbedding, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, emb_size)
-        self.emb_size = emb_size
-
-    def forward(self, tokens):
-        """
-        Input:
-            tokens: (batch_size, m) tensor of bits or token indices (m=n or 2n)
-        Returns:
-            Tensor: (batch_size, n, emb_size), final dimension indexes the embedding vector
-        """
-        # Okay, so we have to cast our bits to float64 to embed...
-        # FIXME: use lower precision?
-        return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
-
-
 class PositionalEncoding(nn.Module):
 	r"""Inject some information about the relative or absolute position of the tokens
 		in the sequence. The positional encodings have the same dimension as
