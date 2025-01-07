@@ -1,16 +1,9 @@
-import os
-import sys
-import math
-import logging
 import ipdb as pdb
-import random
 from time import time
 from typing import OrderedDict
 import numpy as np
 import wandb
-import copy
 
-from mindreadingautobots.utils.helper import save_checkpoint
 from mindreadingautobots.transformer_pipeline.components.transformer import TransformerCLF
 
 from mindreadingautobots.utils.logger import store_results, print_log
@@ -23,9 +16,8 @@ from ray.tune.schedulers import ASHAScheduler
 from ray import tune, train
 from ray.train import RunConfig
 from ray.train.torch import TorchTrainer, get_device
-from ray.util.check_serialize import inspect_serializability
-from mindreadingautobots.utils.sentence_processing import idx_to_sent, idxs_to_sent
-from mindreadingautobots.utils.dataloader import SamplerIter
+# from ray.util.check_serialize import inspect_serializability
+from mldec.pipelines.utils.training import EarlyStopping
 
 
 class SeqClassifier(nn.Module):
@@ -49,12 +41,10 @@ class SeqClassifier(nn.Module):
 		# self.criterion = nn.NLLLoss()
 		# Use this to save computation, the model does not compute softmax.
 		self.criterion = torch.nn.CrossEntropyLoss()
-	
 
 	def _initialize_model(self):
 
 		# self.config.d_ff = 2*self.config.d_model # uh this attr was spelled wrong when I found it, yikes?
-
 		self.model = TransformerCLF(self.voc.nwords, self.config.nlabels, self.config.d_model,
 		self.config.heads, self.config.d_ffn, self.config.depth, 
 		self.config.dropout, self.config.pos_encode, mask= self.config.mask ).to(self.device)
@@ -116,25 +106,21 @@ def build_model(config, voc, device, logger):
 
 
 def train_model(model, train_loader, val_loader, voc, device, 
-				config, logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0, writer= None):
+				config, logger, epoch_offset= 0):
 
+	max_val_acc = 0
 	best_epoch = 0
-	curr_train_acc=0.0
 	early_stop_count=0
-	max_train_acc = 0.0
 	if config.wandb:
 		wandb.watch(model, log_freq= 1000)
 
 	itr= 0
-	gen_success=False
-	conv_time = -1
-	conv = False
 	data_size = len(train_loader)
 	estop_lim = 1000 * (config.batch_size // data_size)
 
-	for epoch in range(1, config.epochs):
+	early_stopping = EarlyStopping(patience=50, delta=0.0, logger=logger)
 
+	for epoch in range(1, config.epochs):
 		train_loss_epoch = 0.0
 		train_acc_epoch = 0.0
 		val_acc_epoch = 0.0
@@ -142,18 +128,12 @@ def train_model(model, train_loader, val_loader, voc, device,
 		start_time = time()
 		lr_epoch =  model.optimizer.state_dict()['param_groups'][0]['lr']
 
-		for batch, i in enumerate(range(0, len(train_loader), config.batch_size)):
-
-			# if config.model_type == 'RNN':
-			# 	hidden = model.model.init_hidden(config.batch_size)
-			# else:
-			# 	hidden = None
-		
+		for i in range(train_loader.num_batches):
 			source, targets, word_lens = train_loader.get_batch(i)			
 			source, targets, word_lens= source.to(device), targets.to(device), word_lens.to(device)
 			loss = model.trainer(source, targets, word_lens, config)
 			train_loss_epoch += loss 
-			itr +=1
+			itr += 1
 		
 		train_loss_epoch = train_loss_epoch/train_loader.num_batches
 		time_taken = time() - start_time
@@ -166,6 +146,8 @@ def train_model(model, train_loader, val_loader, voc, device,
 		val_acc_epoch = run_validation(config, model, val_loader, voc, device, logger)
 		train_acc_epoch = run_validation(config, model, train_loader, voc, device, logger)
 		gen_gap = train_acc_epoch- val_acc_epoch
+		# Early stopping is based on _loss_, so we negate the accuracy
+		early_stopping( (-1) * val_acc_epoch, model)
 
 		if config.opt == 'sgd':
 			model.scheduler.step(val_acc_epoch)
@@ -190,23 +172,10 @@ def train_model(model, train_loader, val_loader, voc, device,
 			best_epoch= epoch
 			curr_train_acc= train_acc_epoch
 
-		if val_acc_epoch> 0.9999:
-			early_stop_count +=1
-
-		else:
-			early_stop_count=0
-
-		if early_stop_count > estop_lim:
-			break
-		if train_acc_epoch> 0.999:
-			early_stop_tr +=1
-		else:
-			early_stop_tr=0
-
-		if early_stop_tr > 30:
+		# Break if we haven't had consistent progress 
+		if early_stopping.early_stop:
 			break
 
-		
 		od = OrderedDict()
 		od['Epoch'] = epoch + epoch_offset
 		od['train_loss'] = train_loss_epoch
@@ -214,9 +183,7 @@ def train_model(model, train_loader, val_loader, voc, device,
 		od['val_acc_epoch']= val_acc_epoch
 		od['max_val_acc']= max_val_acc
 		od['lr_epoch'] = lr_epoch
-		# od['conv_time'] = conv_time
 		print_log(logger, od)
-
 	logger.info('Training Completed for {} epochs'.format(config.epochs))
 
 	if config.wandb:
@@ -226,8 +193,6 @@ def train_model(model, train_loader, val_loader, voc, device,
 			# 'conv-time': conv_time,
 			})
 	
-
-
 	if config.results:
 		store_results(config, max_val_acc, curr_train_acc, best_epoch)
 		logger.info('Scores saved at {}'.format(config.result_path))

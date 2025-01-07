@@ -26,7 +26,7 @@ Hyperparameters to sweep with raytune are set by modifiying `main.py` directly; 
 To tune hyperparameters for an LSTM on sparse parity dataset (provide the hyperparameters that you want to remain fixed; anything that you have coded into main.py will overwrite anything that you pass as a command line argument)
 
 ```shell
-$	python -m main -mode tune -dataset sparse_parity_k4_n5000_bf0_seed1234  \
+$	python -m main -mode tune -dataset sparse_parity_k4_nbits10_n5000_bf0_seed1234  \
 -cell_type LSTM -lr 0.001 -emb_size 128 -hidden_size 128 
 ```
 
