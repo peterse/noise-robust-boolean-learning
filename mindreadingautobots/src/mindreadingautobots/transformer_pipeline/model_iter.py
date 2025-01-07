@@ -17,7 +17,7 @@ from ray import tune, train
 from ray.train import RunConfig
 from ray.train.torch import TorchTrainer, get_device
 # from ray.util.check_serialize import inspect_serializability
-from mldec.pipelines.utils.training import EarlyStopping
+from mindreadingautobots.utils.training import EarlyStopping
 
 
 class SeqClassifier(nn.Module):
@@ -106,21 +106,19 @@ def build_model(config, voc, device, logger):
 
 
 def train_model(model, train_loader, val_loader, voc, device, 
-				config, logger, epoch_offset= 0):
+				config, logger, epoch_offset=0):
 
 	max_val_acc = 0
 	best_epoch = 0
-	early_stop_count=0
 	if config.wandb:
 		wandb.watch(model, log_freq= 1000)
 
 	itr= 0
-	data_size = len(train_loader)
-	estop_lim = 1000 * (config.batch_size // data_size)
 
+	num_batches = int(train_loader.num_batches)
 	early_stopping = EarlyStopping(patience=50, delta=0.0, logger=logger)
 
-	for epoch in range(1, config.epochs):
+	for epoch in range(1, config.epochs + 1):
 		train_loss_epoch = 0.0
 		train_acc_epoch = 0.0
 		val_acc_epoch = 0.0
@@ -128,7 +126,7 @@ def train_model(model, train_loader, val_loader, voc, device,
 		start_time = time()
 		lr_epoch =  model.optimizer.state_dict()['param_groups'][0]['lr']
 
-		for i in range(train_loader.num_batches):
+		for i in range(num_batches):
 			source, targets, word_lens = train_loader.get_batch(i)			
 			source, targets, word_lens= source.to(device), targets.to(device), word_lens.to(device)
 			loss = model.trainer(source, targets, word_lens, config)
@@ -184,7 +182,7 @@ def train_model(model, train_loader, val_loader, voc, device,
 		od['max_val_acc']= max_val_acc
 		od['lr_epoch'] = lr_epoch
 		print_log(logger, od)
-	logger.info('Training Completed for {} epochs'.format(config.epochs))
+	logger.info('Training Completed for {} epochs'.format(epoch))
 
 	if config.wandb:
 		wandb.log({

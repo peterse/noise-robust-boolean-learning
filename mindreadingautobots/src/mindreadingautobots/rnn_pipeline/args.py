@@ -4,8 +4,7 @@ import argparse
 
 def build_parser():
 	# Data loading parameters
-	parser = argparse.ArgumentParser(description='Run Transformer Classifier')
-
+	parser = argparse.ArgumentParser(description='Run RNN Classifier')
 
 	# Mode specifications
 	parser.add_argument('-mode', type=str, default='train', choices=['train', 'test', 'tune'], help='Modes: train, test, tune')
@@ -39,7 +38,7 @@ def build_parser():
 
 	# Model parameters
 	parser.add_argument('-model_type', type=str, default='RNN', choices= ['RNN'],  help='Model Type')
-	parser.add_argument('-cell_type', type=str, default='LSTM', choices= ['LSTM', 'GRU', 'RNN'],  help='RNN cell type, default: lstm')
+	parser.add_argument('-cell_type', type=str, default='LSTM', choices= ['LSTM', 'GRU', 'RNN_TANH', 'RNN_RELU'],  help='RNN cell type, default: lstm')
 	parser.add_argument('-depth', type=int, default=2, help='Number of layers in each encoder and decoder')
 	parser.add_argument('-dropout', type=float, default=0.05, help= 'Dropout probability for input/output/state units (0.0: no dropout)')
 	parser.add_argument('-emb_size', type=int, default=128, help='Embedding dimensions of inputs')

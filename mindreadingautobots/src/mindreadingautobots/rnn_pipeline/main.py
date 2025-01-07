@@ -203,7 +203,7 @@ def main():
 		
 		logger.info('Starting Training Procedure')
 		train_model(model, train_loader, val_loader, voc,
-					device, config, logger, epoch_offset, min_val_loss)
+					device, config, logger, epoch_offset)
 
 	elif is_tune:
 		# Hyperparameter tuning happens here. I don't use command line inputs for

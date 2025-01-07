@@ -14,13 +14,11 @@ from ray.tune.schedulers import ASHAScheduler
 from ray import tune, train
 from ray.train import RunConfig
 from ray.train.torch import TorchTrainer, get_device
-from ray.util.check_serialize import inspect_serializability
+# from ray.util.check_serialize import inspect_serializability
 
-from mindreadingautobots.utils.helper import save_checkpoint
-from mindreadingautobots.utils.sentence_processing import idx_to_sent, idxs_to_sent
 from mindreadingautobots.utils.logger import store_results, print_log
-
 from mindreadingautobots.rnn_pipeline.components.rnns import RNNModel
+from mindreadingautobots.utils.training import EarlyStopping
 
 
 class SeqClassifier(nn.Module):
@@ -119,19 +117,18 @@ def build_model(config, voc, device, logger):
 
 
 def train_model(model, train_loader, val_loader, voc, device, 
-				config, logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0,
-				):
+				config, logger, epoch_offset=0):
 
+	max_val_acc = 0
 	best_epoch = 0
-	curr_train_acc=0.0
 	early_stop_count=0
-	early_stop_tr=0
-	max_train_acc = 0.0
-	epoch_track = [1,50,250, 272,273,274,275,276,277,300,350, 450]
 	if config.wandb:
 		wandb.watch(model, log_freq= 1000)
 
+	itr= 0
+
+	num_batches = int(train_loader.num_batches)
+	early_stopping = EarlyStopping(patience=50, delta=0.0, logger=logger)
 
 	for epoch in range(1, config.epochs+1):
 
@@ -142,17 +139,16 @@ def train_model(model, train_loader, val_loader, voc, device,
 		start_time = time()
 		lr_epoch =  model.optimizer.state_dict()['param_groups'][0]['lr']
 
-		for batch, i in enumerate(range(0, len(train_loader), config.batch_size)):
-
+		for i in range(num_batches):
 			if config.model_type == 'RNN':
 				hidden = model.model.init_hidden(config.batch_size)
 			else:
 				hidden = None
-			
 			source, targets, word_lens = train_loader.get_batch(i)
 			source, targets, word_lens= source.to(device), targets.to(device), word_lens.to(device)
 			loss = model.trainer(source, targets, word_lens, hidden, config)
 			train_loss_epoch += loss 
+			itr += 1
 		
 		train_loss_epoch = train_loss_epoch/train_loader.num_batches
 		# print time in mins and seconds
@@ -166,6 +162,8 @@ def train_model(model, train_loader, val_loader, voc, device,
 		val_acc_epoch = run_validation(config, model, val_loader, voc, device, logger)
 		train_acc_epoch = run_validation(config, model, train_loader, voc, device, logger)
 		gen_gap = train_acc_epoch- val_acc_epoch
+		# Early stopping is based on _loss_, so we negate the accuracy
+		early_stopping( (-1) * val_acc_epoch, model)
 
 		if config.opt == 'sgd':
 			model.scheduler.step(val_acc_epoch)
@@ -190,20 +188,8 @@ def train_model(model, train_loader, val_loader, voc, device,
 			best_epoch= epoch
 			curr_train_acc= train_acc_epoch
 
-		if val_acc_epoch> 0.999:
-			early_stop_count +=1
-		else:
-			early_stop_count=0
-
-		if early_stop_count > 40:
-			break
-
-		if train_acc_epoch> 0.999:
-			early_stop_tr +=1
-		else:
-			early_stop_tr=0
-
-		if early_stop_tr > 30:
+		# Break if we haven't had consistent progress 
+		if early_stopping.early_stop:
 			break
 
 		od = OrderedDict()
@@ -214,12 +200,13 @@ def train_model(model, train_loader, val_loader, voc, device,
 		od['max_val_acc']= max_val_acc
 		od['lr_epoch'] = lr_epoch
 		print_log(logger, od)
-
-	logger.info('Training Completed for {} epochs'.format(config.epochs))
+	logger.info('Training Completed for {} epochs'.format(epoch))
 
 	if config.wandb:
 		wandb.log({
-			'max-val-acc': max_val_acc,				
+			'max-val-acc': max_val_acc,
+			# 'gen-success': gen_success,
+			# 'conv-time': conv_time,
 			})
 
 	if config.results:
