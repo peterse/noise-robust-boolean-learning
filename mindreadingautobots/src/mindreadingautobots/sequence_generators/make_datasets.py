@@ -127,7 +127,9 @@ def find_hamiltonian_cycle(G):
 
 
 def k_choose_m_hamilton_forecast_dataset(k, m, n_data, n_bits, p_bitflip, seed, subseq_idx=None):
-
+    """
+    
+    """
     # indices are relative to the bit being determined, not absolute
     if subseq_idx is None:
         subseq_idx = np.random.choice(np.arange(k), m, replace=False)
@@ -167,6 +169,8 @@ def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, s
         X: (n_data, n_bits) array of noiseless data
         Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
     """
+    raise NotImplementedError("output signature is wrong, and seed bits are missing.")
+
     assert len(transition_matrix) == k + 1
     assert np.all([0 <= v <= 1 for v in transition_matrix.values()])
     assert n_bits > k
@@ -256,6 +260,8 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
 
     """Generate a dataset where the final bit is the parity of a subset k of the n bits.
     
+    The bitstrings contain a randomly seeded first-k bits.
+
     Args:
         n_bits: TOTAL number of bits (including final bit)
         k: number of bits in the subset, to be chosen randomly.
@@ -285,13 +291,14 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
     Z = None
     if p_bitflip > 0:
         flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
-        flips[:,-1] = 0
+        flips[:,-1] = 0 # we do not flip the last 'label' bit.
         Z = np.logical_xor(X, flips).astype(int)
 
     return X, Z, subseq_idx
 
 
 def sparity_k4(n_data, n_bits, p_bitflip, seed):
+    """Wrapper for sparse_parity_k_n with k=4"""
     return sparse_parity_k_n(n_bits, 4, n_data, p_bitflip, seed)
 
 
