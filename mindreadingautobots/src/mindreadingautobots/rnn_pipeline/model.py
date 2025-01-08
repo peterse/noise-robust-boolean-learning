@@ -116,7 +116,7 @@ def build_model(config, voc, device, logger):
 	return model
 
 
-def train_model(model, train_loader, val_loader, voc, device, 
+def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, device, 
 				config, logger, epoch_offset=0):
 
 	max_val_acc = 0
@@ -161,6 +161,12 @@ def train_model(model, train_loader, val_loader, voc, device,
 
 		val_acc_epoch = run_validation(config, model, val_loader, voc, device, logger)
 		train_acc_epoch = run_validation(config, model, train_loader, voc, device, logger)
+
+		# If noiseless validation is not enabled, the model will report '0'
+		noiseless_val_acc_epoch = 0
+		if config.noiseless_validation is not None:
+			noiseless_val_acc_epoch = run_validation(config, model, noiseless_val_loader, voc, device, logger)
+
 		gen_gap = train_acc_epoch- val_acc_epoch
 		# Early stopping is based on _loss_, so we negate the accuracy
 		early_stopping( (-1) * val_acc_epoch, model)
@@ -180,7 +186,8 @@ def train_model(model, train_loader, val_loader, voc, device,
 			train.report({
 				"train_loss": (train_loss_epoch),
 				"train_acc": train_acc_epoch,
-				"val_acc": val_acc_epoch
+				"val_acc": val_acc_epoch,
+				"noiseless_val_acc": noiseless_val_acc_epoch,
 			})
 
 		if val_acc_epoch > max_val_acc :
@@ -197,6 +204,7 @@ def train_model(model, train_loader, val_loader, voc, device,
 		od['train_loss'] = train_loss_epoch
 		od['train_acc'] = train_acc_epoch
 		od['val_acc_epoch']= val_acc_epoch
+		od['noiseless_val_acc_epoch'] = noiseless_val_acc_epoch
 		od['max_val_acc']= max_val_acc
 		od['lr_epoch'] = lr_epoch
 		print_log(logger, od)

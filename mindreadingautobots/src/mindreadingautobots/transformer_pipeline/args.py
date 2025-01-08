@@ -8,6 +8,7 @@ def build_parser():
 	parser.add_argument('-mode', type=str, default='train', choices=['train', 'test', 'tune'], help='Modes: train, test, tune')
 	# parser.add_argument('-debug', action='store_true', help='Operate on debug mode')
 	parser.add_argument('-debug', dest='debug', action='store_true', help='Operate in debug mode')
+	parser.add_argument('-noiseless_validation', dest='noiseless_validation', action='store_true', help='Compute validation score for noiseless data')
 	parser.add_argument('-no-debug', dest='debug', action='store_false', help='Operate in normal mode')
 	parser.set_defaults(debug=False)
 	parser.add_argument('-results', dest='results', action='store_true', help='Store results')

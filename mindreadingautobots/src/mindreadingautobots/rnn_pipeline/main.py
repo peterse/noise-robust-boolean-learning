@@ -64,6 +64,8 @@ def load_data(config, logger):
 		'''Create Vocab'''
 		train_path = os.path.join(data_path, config.dataset, 'train.pkl')
 		val_path = os.path.join(data_path, config.dataset, 'val.pkl')
+		noiseless_val_path = os.path.join(data_path, config.dataset, 'noiseless_val.pkl')
+
 		# test_path = os.path.join(data_path, config.dataset, 'test.tsv')
 		voc= Voc()
 		voc.create_vocab_dict(config, path= train_path, debug = config.debug)
@@ -77,10 +79,13 @@ def load_data(config, logger):
 		val_corpus = Corpus(val_path, voc, debug = config.debug)		
 		val_loader = Sampler(val_corpus, voc, config.batch_size)
 
+		noiseless_val_corpus = Corpus(noiseless_val_path, voc, debug = config.debug)
+		noiseless_val_loader = Sampler(noiseless_val_corpus, voc, config.batch_size)
+
 		msg = 'Training and Validation Data Loaded:\nTrain Size: {}\nVal Size: {}'.format(len(train_corpus.data), len(val_corpus.data))
 		logger.info(msg)
 		
-		return voc, train_loader, val_loader
+		return voc, train_loader, val_loader, noiseless_val_loader
 	else:
 		logger.critical('Invalid Mode Specified')
 		raise Exception('{} is not a valid mode'.format(config.mode))
@@ -138,7 +143,7 @@ def main():
 	logger.info('Experiment Name: {}'.format(config.run_name))
 	
 	if is_train or is_tune:
-		voc, train_loader, val_loader = load_data(config, logger)
+		voc, train_loader, val_loader, noiseless_val_loader = load_data(config, logger)
 		config.nlabels= train_loader.corpus.nlabels
 		logger.info('Vocab Created with number of words : {}'.format(voc.nwords))		
 
@@ -202,7 +207,7 @@ def main():
 			)
 		
 		logger.info('Starting Training Procedure')
-		train_model(model, train_loader, val_loader, voc,
+		train_model(model, train_loader, val_loader, noiseless_val_loader, voc,
 					device, config, logger, epoch_offset)
 
 	elif is_tune:

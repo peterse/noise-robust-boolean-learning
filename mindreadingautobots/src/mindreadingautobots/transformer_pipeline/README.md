@@ -11,7 +11,7 @@ Run training for a transformer
 
 ```shell
 $	python -m main -mode train -gpu 0 -dataset sparse_parity_k4_nbits10_n5000_bf0_seed1234 -run_name 0 \
--model_type SAN -depth 2 -heads 4 -lr 0.001 -d_model 32 -d_ffn 32 
+-model_type SAN -depth 2 -heads 4 -lr 0.001 -d_model 32 -d_ffn 32 -noiseless_validation
 ```
 gpu flags the gpu number, it is not a boolean. To use CPU, omit the gpu arg entirely. Other args:
  - depth (number of layers in decoder and encoder)
