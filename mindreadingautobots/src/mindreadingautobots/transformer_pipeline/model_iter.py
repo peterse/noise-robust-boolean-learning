@@ -126,7 +126,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		start_time = time()
 		lr_epoch =  model.optimizer.state_dict()['param_groups'][0]['lr']
 
-		for i in range(num_batches):
+		for batch, i in enumerate(range(0, len(train_loader), config.batch_size)):
 			source, targets, word_lens = train_loader.get_batch(i)			
 			source, targets, word_lens= source.to(device), targets.to(device), word_lens.to(device)
 			loss = model.trainer(source, targets, word_lens, config)
