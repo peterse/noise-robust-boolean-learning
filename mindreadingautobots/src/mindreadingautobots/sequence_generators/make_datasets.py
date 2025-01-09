@@ -288,7 +288,7 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
         else:
             X[i, -1] = 1
 
-    Z = None
+    Z = X
     if p_bitflip > 0:
         flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
         flips[:,-1] = 0 # we do not flip the last 'label' bit.

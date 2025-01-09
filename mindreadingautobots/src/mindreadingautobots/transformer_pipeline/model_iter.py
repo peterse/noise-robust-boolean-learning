@@ -18,7 +18,7 @@ from ray.train import RunConfig
 from ray.train.torch import TorchTrainer, get_device
 # from ray.util.check_serialize import inspect_serializability
 from mindreadingautobots.utils.training import EarlyStopping
-
+from mindreadingautobots.utils.helper import save_checkpoint
 
 class SeqClassifier(nn.Module):
 	def __init__(self, config=None, voc=None, device=None, logger=None):
@@ -176,6 +176,17 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 			max_val_acc = val_acc_epoch
 			best_epoch= epoch
 			curr_train_acc= train_acc_epoch
+			state = {
+				'epoch' : epoch+epoch_offset,
+				'model_state_dict' : model.state_dict(),
+				'voc' : model.voc,
+				'optimizer_state_dict': model.optimizer.state_dict(),
+				'train_loss': train_loss_epoch,
+				'val_acc': max_val_acc,
+				"noiseless_val_acc": noiseless_val_acc_epoch,
+				'lr': lr_epoch
+			}
+			save_checkpoint(state, 1, logger, config.model_path, config.ckpt)  # Only save best model
 
 		# Break if we haven't had consistent progress 
 		if early_stopping.early_stop:
@@ -405,11 +416,8 @@ def run_validation(config, model, data_loader, voc, device, logger):
 
 	with torch.no_grad():
 		for batch, i in enumerate(range(0, len(data_loader), data_loader.batch_size)):
-
-
 			source, targets, word_lens= data_loader.get_batch(i)
 			source, targets, word_lens= source.to(device), targets.to(device), word_lens.to(device)
-
 			acc = model.evaluator(source, targets, word_lens, config)
 
 			val_acc_epoch+= acc
