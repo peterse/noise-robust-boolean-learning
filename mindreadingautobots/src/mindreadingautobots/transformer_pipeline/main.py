@@ -233,8 +233,8 @@ def main():
 		# To avoid overutilization, set `max_concurrent_trials`
 		# https://docs.ray.io/en/latest/tune/tutorials/tune-resources.html
 		hyper_settings = {
-			"cpus_per_worker": 0,
-			"gpus_per_worker": 1,
+			"cpus_per_worker": 1,
+			"gpus_per_worker": 0,
 			"max_concurrent_trials": 1,
 			"epochs": 100,
 			"num_samples": 10,
