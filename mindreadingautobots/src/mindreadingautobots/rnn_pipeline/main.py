@@ -211,22 +211,27 @@ def main():
 					device, config, logger, epoch_offset)
 
 	elif is_tune:
-		# Hyperparameter tuning happens here. I don't use command line inputs for
-		# this config because it would be like pulling teeth.
-		# TODO: this doesn't do what i think it does.
+		# Hyperparameter tuning happens here. 
+		# The actual hyperparameters usued will be sampled from hyper_config randomly
+		# for each trial in `num_samples`. 
 		hyper_config = {
 			'lr': tune.loguniform(1e-4, 1e-1),
 			'hidden_size': tune.choice([16, 32, 64, 128]),
 			'depth': tune.choice([1, 2, 3]),
 		}
+		#If you want to deterministically visit
+		# all possible hyperparameters, you can use tune.grid_search, e.g. the following:
 		# hyper_config = {
-		# 	'lr': tune.choice([1e-4]),
-		# 	'hidden_size': tune.choice([32]),
-		# 	'depth': tune.choice([1]),
+		# 	'hidden_size': tune.grid_search([16, 32, 64, 128]),
+		# 	'depth': tune.grid_search([1, 2, 3]),
 		# }
-		# this set of configs should contain only model hyperparameters
-		# FIXME: This isn't assigning cpu's correctly, currently it runs on
-		# all 8/8 cpus available...?
+		# WARNING: IF YOU USE GRID SEARCH, IT WILL RUN ALL COMBINATIONS OF THE PARAMETERS
+		# `num_samples` TIMES EACH. e.g. if num_samples=60, the above will run 720 trials!
+
+		# The way raytune distributes compute resources is to use all possible resources,
+		# then maximize the number of trials such that cpus/gpus per worker below are satisfied.
+		# To avoid overutilization, set `max_concurrent_trials`
+		# https://docs.ray.io/en/latest/tune/tutorials/tune-resources.html
 		hyper_settings = {
 			"cpus_per_worker": 2,
 			"gpus_per_worker": 0,

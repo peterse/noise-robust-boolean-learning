@@ -27,7 +27,7 @@ To tune hyperparameters for an LSTM on sparse parity dataset (provide the hyperp
 
 ```shell
 $	python -m main -mode tune -dataset sparse_parity_k4_nbits10_n5000_bf0_seed1234  \
--cell_type LSTM -lr 0.001 -emb_size 128 -hidden_size 128 
+-cell_type LSTM -emb_size 128
 ```
 
 

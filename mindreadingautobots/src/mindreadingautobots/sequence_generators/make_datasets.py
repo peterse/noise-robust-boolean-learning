@@ -128,6 +128,9 @@ def find_hamiltonian_cycle(G):
 
 def k_choose_m_hamilton_forecast_dataset(k, m, n_data, n_bits, p_bitflip, seed, subseq_idx=None):
     """
+    Generate the next bit according to a De Bruijn sequence on a random size-m 
+    subset of the previous k bits. This is the longest-period bitstring generating function
+    with k-lookback.
     
     """
     # indices are relative to the bit being determined, not absolute

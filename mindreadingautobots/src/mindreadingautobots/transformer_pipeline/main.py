@@ -211,8 +211,7 @@ def main():
 					device, config, logger, epoch_offset)
 
 	elif is_tune:
-		# Hyperparameter tuning happens here. I don't use command line inputs for
-		# this config because it would be like pulling teeth.
+		# Hyperparameter tuning happens here. 
 		hyper_config = {
 			'lr': tune.choice([1e-4]),
 			'd_model': tune.choice([32]),
@@ -220,6 +219,14 @@ def main():
 			'd_ffn': tune.choice([64]),
 			'heads':tune.choice([2])
 		}
+		#If you want to deterministically visit
+		# all possible hyperparameters, you can use tune.grid_search, e.g. the following:
+		# hyper_config = {
+		# 	'd_model': tune.grid_search([16, 32, 64, 128]),
+		# 	'depth': tune.grid_search([1, 2, 3]),
+		# }
+		# WARNING: IF YOU USE GRID SEARCH, IT WILL RUN ALL COMBINATIONS OF THE PARAMETERS
+		# `num_samples` TIMES EACH. e.g. if num_samples=60, the above will run 720 trials!
 
 		# The way raytune distributes compute resources is to use all possible resources,
 		# then maximize the number of trials such that cpus/gpus per worker below are satisfied.
