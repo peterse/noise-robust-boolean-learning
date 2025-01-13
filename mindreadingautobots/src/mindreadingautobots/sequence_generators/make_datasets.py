@@ -60,7 +60,7 @@ def k_choose_m_transition_forecast_dataset(transition_func, k, m, n_data, n_bits
     # shuffle X
     np.random.shuffle(X)
 
-    Z = None
+    Z = X
     # X = np.random.randint(0, 2, size=(n_data, n_bits))
     # for i in range(n_data):
     #     for j in range(k, n_bits):

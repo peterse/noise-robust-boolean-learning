@@ -261,7 +261,7 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 		
 	run_config = RunConfig(
 		progress_reporter=reporter,
-		stop={"training_iteration": config["epochs"], "mean_accuracy": 0.8},
+		stop={"training_iteration": config.epochs, "mean_accuracy": 0.8},
 	)
 	trainable = tune.with_parameters(
 					build_and_train_model_raytune, 
