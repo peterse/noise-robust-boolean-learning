@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 
+import ray
 from ray.tune import CLIReporter, Tuner
 from ray.tune.schedulers import ASHAScheduler
 from ray import tune, train
@@ -244,7 +245,8 @@ def trial_dirname_creator(trial):
 def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, 
 				config, logger, epoch_offset= 0):	
 	
-	
+	ray.init(include_dashboard=False) # suppress dashboard resources
+
 	# config should have tune=True
 	scheduler = ASHAScheduler(
 		time_attr="training_iteration",
