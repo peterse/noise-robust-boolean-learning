@@ -222,10 +222,8 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		logger.info('Scores saved at {}'.format(config.result_path))
 
 
-def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader, voc, 
-				logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0,
-				):
+def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader, noiseless_val_loader, voc, 
+				logger, epoch_offset= 0):
 	"""Build and train a model with the given hyperparameters
 	
 	Reasons why this exists:
@@ -236,16 +234,15 @@ def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader
 	for key, value in hyper_config.items():
 		setattr(config, key, value)
 	model = build_model(config, voc, device, logger)
-	train_model(model, train_loader, val_loader, voc, device, config, logger, epoch_offset, min_val_loss, max_val_acc)
+	train_model(model, train_loader, val_loader, noiseless_val_loader, voc, device, config, logger, epoch_offset)
 
 
 def trial_dirname_creator(trial):
     return f"{trial.trainable_name}_{trial.trial_id}"
 
 
-def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc, 
-				config, logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0):	
+def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, 
+				config, logger, epoch_offset= 0):	
 	
 	
 	# config should have tune=True
@@ -285,11 +282,10 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 					config=config,
 					train_loader=train_loader,
 					val_loader=val_loader,
+					noiseless_val_loader=noiseless_val_loader,
 					voc=voc,
 					logger=logger,
 					epoch_offset=epoch_offset,
-					min_val_loss=min_val_loss,
-					max_val_acc=max_val_acc
 					),
 				resources={"cpu": hyper_settings.get("cpus_per_worker"), "gpu": hyper_settings.get("gpus_per_worker")}
 	)

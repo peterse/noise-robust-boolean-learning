@@ -128,6 +128,7 @@ def main():
 
 	if config.results:
 		config.result_path = os.path.join(result_folder, 'val_results_{}.json'.format(config.dataset))
+	config.hyper_path = os.path.join(result_folder, 'tuning_results_{}.json'.format(config.dataset))
 	
 	if is_train or is_tune:
 		create_save_directories(config.log_path, config.model_path, result_folder)
@@ -236,8 +237,9 @@ def main():
 			"cpus_per_worker": 1,
 			"gpus_per_worker": 0,
 			"max_concurrent_trials": 1,
-			"epochs": 100,
-			"num_samples": 10,
+			"grace_period": 1, # minimum epochs to give each trial
+			"max_iterations": 1, # this is the max epochs any trial is allowed to run
+			"num_samples": 1,
 		}
 
 		min_val_loss = torch.tensor(float('inf')).item()
@@ -250,7 +252,7 @@ def main():
 		for key, value in hyper_config.items():
 			setattr(config, key, value)
 
-		tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc, config, logger, epoch_offset, min_val_loss)
+		tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, config, logger, epoch_offset)
 		
 
 

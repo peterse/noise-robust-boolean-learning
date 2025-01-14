@@ -126,8 +126,7 @@ class Seq2SeqTransformer(nn.Module):
         # Forward is only called during training/validation, so this is fine
         B, T, C = logits.shape
         logits = logits.view(B*T, C)
-
-
+        
         return logits
 
     def encode(self, src, src_mask):

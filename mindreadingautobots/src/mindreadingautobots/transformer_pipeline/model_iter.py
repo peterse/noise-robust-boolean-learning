@@ -16,6 +16,7 @@ from ray.tune.schedulers import ASHAScheduler
 from ray import tune, train
 from ray.train import RunConfig
 from ray.train.torch import TorchTrainer, get_device
+from ray.tune.experiment.trial import Trial
 # from ray.util.check_serialize import inspect_serializability
 from mindreadingautobots.utils.training import EarlyStopping
 from mindreadingautobots.utils.helper import save_checkpoint
@@ -215,10 +216,20 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		logger.info('Scores saved at {}'.format(config.result_path))
 
 	
-def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader, voc, 
-				logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0,
-				):
+class TrialTerminationReporter(CLIReporter):
+    def __init__(self):
+        super(TrialTerminationReporter, self).__init__()
+        self.num_terminated = 0
+
+    def should_report(self, trials, done=False):
+        """Reports only on trial termination events."""
+        old_num_terminated = self.num_terminated
+        self.num_terminated = len([t for t in trials if t.status == Trial.TERMINATED])
+        return self.num_terminated > old_num_terminated
+	
+
+def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader, noiseless_val_loader, voc, 
+				logger, epoch_offset= 0):
 	"""Build and train a model with the given hyperparameters
 	
 	Reasons why this exists:
@@ -229,28 +240,29 @@ def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader
 	for key, value in hyper_config.items():
 		setattr(config, key, value)
 	model = build_model(config, voc, device, logger)
-	train_model(model, train_loader, val_loader, voc, device, config, logger, epoch_offset, min_val_loss, max_val_acc)
+	train_model(model, train_loader, val_loader, noiseless_val_loader, voc, device, config, logger, epoch_offset)
 
 def trial_dirname_creator(trial):
     return f"{trial.trainable_name}_{trial.trial_id}"
 
-def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc, 
-				config, logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0):	
+
+def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, 
+				config, logger, epoch_offset= 0):	
 	
 	
 	# config should have tune=True
 	scheduler = ASHAScheduler(
-		metric="train_loss",
-		mode="min",
-		max_t=hyper_settings.get("epochs"), # I'm not sure what this kwarg does and neither is the documentation
-		grace_period=1,
+		metric="val_acc",
+		mode="max",
+		max_t=hyper_settings.get("max_iterations"), # I'm not sure what this kwarg does and neither is the documentation
+		grace_period=hyper_settings.get("grace_period"),
 		reduction_factor=2)
 
-	reporter = CLIReporter(
-		metric_columns=["loss", "training_iteration", "mean_accuracy"],
-		print_intermediate_tables=False,
-		)
+	# reporter = CLIReporter(
+	# 	metric_columns=["loss", "training_iteration", "mean_accuracy"],
+	# 	print_intermediate_tables=False,
+		# )
+	reporter = TrialTerminationReporter()
 
 	tune_config = tune.TuneConfig(
 		num_samples=hyper_settings.get("num_samples"),
@@ -268,11 +280,10 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 					config=config,
 					train_loader=train_loader,
 					val_loader=val_loader,
+					noiseless_val_loader=noiseless_val_loader,
 					voc=voc,
 					logger=logger,
 					epoch_offset=epoch_offset,
-					min_val_loss=min_val_loss,
-					max_val_acc=max_val_acc
 					)
 	
 	resources = tune.with_resources(
@@ -288,6 +299,10 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 	)
 	result = tuner.fit()
 
+	df = result.get_dataframe()
+	print(df)
+	with open(config.hyper_path, 'a') as f:
+		f.write(df.to_string(header=True, index=False))
 	return result			
 
 # def train_model_iter(model, voc, device, config, logger):
