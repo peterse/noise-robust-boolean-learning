@@ -216,8 +216,8 @@ def main():
 		hyper_config = {
 			'lr': tune.choice([1e-4]),
 			'd_model': tune.choice([32]),
-			'depth': tune.choice([1, 2]),
-			'd_ffn': tune.choice([64]),
+			'depth': tune.choice([1, 2, 3]),
+			'd_ffn': tune.choice([32, 64]),
 			'heads':tune.choice([2])
 		}
 		#If you want to deterministically visit
@@ -234,12 +234,12 @@ def main():
 		# To avoid overutilization, set `max_concurrent_trials`
 		# https://docs.ray.io/en/latest/tune/tutorials/tune-resources.html
 		hyper_settings = {
-			"cpus_per_worker": 1,
+			"cpus_per_worker": 2,
 			"gpus_per_worker": 0,
-			"max_concurrent_trials": 1,
-			"grace_period": 1, # minimum epochs to give each trial
-			"max_iterations": 1, # this is the max epochs any trial is allowed to run
-			"num_samples": 1,
+			"max_concurrent_trials": 5,
+			"grace_period": 1000, # minimum epochs to give each trial
+			"max_iterations": 1000, # this is the max epochs any trial is allowed to run
+			"num_samples": 50,
 		}
 
 		min_val_loss = torch.tensor(float('inf')).item()

@@ -117,7 +117,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 	itr= 0
 
 	num_batches = int(train_loader.num_batches)
-	early_stopping = EarlyStopping(patience=50, delta=0.0, logger=logger)
+	early_stopping = EarlyStopping(patience=100, delta=0.0, logger=logger)
 
 	for epoch in range(1, config.epochs + 1):
 		train_loss_epoch = 0.0
@@ -171,9 +171,11 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 				"train_acc": train_acc_epoch,
 				"val_acc": val_acc_epoch,
 				"noiseless_val_acc": noiseless_val_acc_epoch,
+				"epoch": epoch,
 			})
 
 		if val_acc_epoch > max_val_acc :
+
 			max_val_acc = val_acc_epoch
 			best_epoch= epoch
 			curr_train_acc= train_acc_epoch
@@ -187,7 +189,8 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 				"noiseless_val_acc": noiseless_val_acc_epoch,
 				'lr': lr_epoch
 			}
-			save_checkpoint(state, 1, logger, config.model_path, config.ckpt)  # Only save best model
+
+			# save_checkpoint(state, epoch, logger, config.model_path, config.ckpt)  # Only save best model
 
 		# Break if we haven't had consistent progress 
 		if early_stopping.early_stop:
@@ -212,7 +215,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 			})
 	
 	if config.results:
-		store_results(config, max_val_acc, curr_train_acc, best_epoch)
+		store_results(config, max_val_acc, curr_train_acc, best_epoch, noiseless_val_acc_epoch)
 		logger.info('Scores saved at {}'.format(config.result_path))
 
 	
@@ -273,7 +276,7 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless
 		
 	run_config = RunConfig(
 		progress_reporter=reporter,
-		stop={"training_iteration": config.epochs, "mean_accuracy": 0.8},
+		stop={"training_iteration": config.epochs, "val_acc": 0.8},
 	)
 	trainable = tune.with_parameters(
 					build_and_train_model_raytune, 
@@ -425,25 +428,54 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless
 
 		
 def run_validation(config, model, data_loader, voc, device, logger):
-	model.eval()
-	batch_num = 0
-	val_acc_epoch = 0.0
+    """
+    Run validation on the given dataset and compute accuracy.
 
-	with torch.no_grad():
-		for batch, i in enumerate(range(0, len(data_loader), data_loader.batch_size)):
-			source, targets, word_lens= data_loader.get_batch(i)
-			source, targets, word_lens= source.to(device), targets.to(device), word_lens.to(device)
-			acc = model.evaluator(source, targets, word_lens, config)
+    Args:
+        config: Configuration object with training parameters.
+        model: PyTorch model to evaluate.
+        data_loader: DataLoader object for validation data.
+        voc: Vocabulary object.
+        device: Device to run the model on (e.g., "cpu" or "cuda").
+        logger: Logger object for logging messages.
 
-			val_acc_epoch+= acc
-			batch_num+=1
-	
-	if batch_num != data_loader.num_batches:
-		pdb.set_trace()
+    Returns:
+        val_acc_epoch (float): Average accuracy over the validation dataset.
+    """
+    logger.info("Starting validation...")
+    model.eval()  # Switch model to evaluation mode
+    batch_num = 0
+    val_acc_epoch = 0.0
 
-	val_acc_epoch = val_acc_epoch/data_loader.num_batches
+    with torch.no_grad():  # Disable gradient computation for validation
+        for batch, i in enumerate(range(0, len(data_loader), data_loader.batch_size)):
+            try:
+                # Fetch batch data
+                source, targets, word_lens = data_loader.get_batch(i)
+                source, targets, word_lens = source.to(device), targets.to(device), word_lens.to(device)
 
-	return val_acc_epoch
+                # Evaluate the batch
+                acc = model.evaluator(source, targets, word_lens, config)
+
+                # Log individual batch accuracy
+                logger.debug(f"Batch {batch_num}: Accuracy={acc}")
+                val_acc_epoch += acc
+                batch_num += 1
+            except Exception as e:
+                logger.error(f"Error during validation at batch {batch_num}: {e}")
+                raise
+
+    # Ensure all batches were processed
+    if batch_num != data_loader.num_batches:
+        logger.warning(
+            f"Number of processed batches ({batch_num}) does not match total batches ({data_loader.num_batches})"
+        )
+
+    # Compute average validation accuracy
+    val_acc_epoch = val_acc_epoch / max(1, data_loader.num_batches)
+    logger.info(f"Validation completed: Average Accuracy={val_acc_epoch:.4f}")
+    return val_acc_epoch
+
 
 
 # def run_validation_iter(config, model, samples, voc, device):
