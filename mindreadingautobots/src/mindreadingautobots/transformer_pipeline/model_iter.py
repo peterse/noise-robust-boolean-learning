@@ -117,7 +117,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 	itr= 0
 
 	num_batches = int(train_loader.num_batches)
-	early_stopping = EarlyStopping(patience=100, delta=0.0, logger=logger)
+	early_stopping = EarlyStopping(patience=200, delta=0.0, logger=logger)
 
 	for epoch in range(1, config.epochs + 1):
 		train_loss_epoch = 0.0
