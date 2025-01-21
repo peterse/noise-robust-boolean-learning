@@ -56,7 +56,9 @@ def save_checkpoint(state, epoch, logger, model_path, ckpt):
 			logger variable
 			directory to save models
 			checkpoint name
-	'''
+	''' 
+	if not os.path.exists(model_path):
+		os.makedirs(model_path)
 	ckpt_path = os.path.join(model_path, '{}_{}.pt'.format(ckpt, epoch))
 	logger.info('Saving Checkpoint at : {}'.format(ckpt_path))
 	torch.save(state, ckpt_path)
