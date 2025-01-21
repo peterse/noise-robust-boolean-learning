@@ -41,6 +41,8 @@ def create_save_directories(log_path, mod_path, res_path):
 	if mod_path:
 		if not os.path.exists(mod_path):
 			os.makedirs(mod_path)
+		# if not os.path.exists(os.path.join(mod_path, 'debug')):
+		# 	os.makedirs(os.path.join(mod_path, 'debug'))
 	
 
 def save_checkpoint(state, epoch, logger, model_path, ckpt):

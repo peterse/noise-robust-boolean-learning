@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 
+import ray
 from ray.tune import CLIReporter, Tuner
 from ray.tune.schedulers import ASHAScheduler
 from ray import tune, train

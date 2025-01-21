@@ -30,7 +30,7 @@ To tune hyperparameters for an xformer do the following:
 
 ```shell
 $	python -m main -mode tune -dataset sparse_parity_k4_nbits10_n5000_bf0_seed1234  \
--model_type SAN -lr 0.001 -d_model 32 -d_ffn 32
+-model_type SAN 
 ```
  _if I have a d_ffn kwarg in `hyper_config`, the above "32" will be ignored!!
 

@@ -263,7 +263,8 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
 
     """Generate a dataset where the final bit is the parity of a subset k of the n bits.
     
-    The bitstrings contain a randomly seeded first-k bits.
+    The first n_bits-1 bits are randomly generated, and the final bit is the parity of 
+    some size-k subset of the previous bits.
 
     Args:
         n_bits: TOTAL number of bits (including final bit)

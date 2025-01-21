@@ -236,9 +236,9 @@ def main():
 			"cpus_per_worker": 2,
 			"gpus_per_worker": 0,
 			"max_concurrent_trials": 20,
-			"grace_period": 1, # minimum epochs to give each trial
+			"grace_period": 25, # minimum epochs to give each trial
 			"max_iterations": 1, # this is the max epochs any trial is allowed to run
-			"num_samples": 1,
+			"num_samples": 1, # this is equal to total trials if no grid search
 		}
 
 		min_val_loss = torch.tensor(float('inf')).item()
