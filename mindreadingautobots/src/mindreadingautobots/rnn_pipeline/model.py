@@ -248,8 +248,8 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless
 	# https://github.com/ray-project/ray/issues/30012#issuecomment-1305006855 I guess
 	ray.init(
 		include_dashboard=False, 
-		#   num_cpus=hyper_settings.get("total_cpus"), 
-		#   num_gpus=hyper_settings.get("total_gpus"), 
+		  num_cpus=hyper_settings.get("total_cpus"), 
+		  num_gpus=hyper_settings.get("total_gpus"), 
 		  _temp_dir=None, 
 		  ignore_reinit_error=True)
 	# config should have tune=True
@@ -305,7 +305,11 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless
 	)
 	result = tuner.fit()
 
-	return result
+	df = result.get_dataframe()
+	print(df)
+	with open(config.hyper_path, 'a') as f:
+		f.write(df.to_string(header=True, index=False))
+	return result			
 
 def run_validation(config, model, data_loader, voc, device, logger):
 	model.eval()
