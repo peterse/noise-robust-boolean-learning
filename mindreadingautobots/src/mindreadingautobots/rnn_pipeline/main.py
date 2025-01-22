@@ -215,8 +215,8 @@ def main():
 		# The actual hyperparameters usued will be sampled from hyper_config randomly
 		# for each trial in `num_samples`. 
 		hyper_config = {
-			'lr': tune.loguniform(1e-4, 1e-1),
-			'hidden_size': tune.choice([16, 32, 64, 128]),
+			'lr': tune.loguniform(1e-4, 1e-2),
+			'hidden_size': tune.choice([16, 32, 64]),
 			'depth': tune.choice([1, 2, 3]),
 		}
 		#If you want to deterministically visit
@@ -235,10 +235,10 @@ def main():
 		hyper_settings = {
 			"cpus_per_worker": 2,
 			"gpus_per_worker": 0,
-			"max_concurrent_trials": 20,
+			"max_concurrent_trials": 40,
 			"grace_period": 25, # minimum epochs to give each trial
-			"max_iterations": 1, # this is the max epochs any trial is allowed to run
-			"num_samples": 1, # this is equal to total trials if no grid search
+			"max_iterations": 1000, # this is the max epochs any trial is allowed to run
+			"num_samples": 20, # this is equal to total trials if no grid search
 		}
 
 		min_val_loss = torch.tensor(float('inf')).item()

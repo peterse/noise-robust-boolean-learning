@@ -293,7 +293,9 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless
 	
 	resources = tune.with_resources(
 		trainable,
-		{"cpu": hyper_settings.get("cpus_per_worker"), "gpu": hyper_settings.get("gpus_per_worker")},
+		{
+			"cpu": hyper_settings.get("cpus_per_worker"), 
+   			"gpu": hyper_settings.get("gpus_per_worker")},
 	)
 	
 	tuner = Tuner(
