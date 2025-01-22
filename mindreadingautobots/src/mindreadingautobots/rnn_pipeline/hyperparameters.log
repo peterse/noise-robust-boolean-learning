@@ -1,0 +1,156 @@
+Starting....
+╭──────────────────────────────────────────────────────────────────────────────────────╮
+│ Configuration for experiment     build_and_train_model_raytune_2025-01-22_14-40-24   │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ Search algorithm                 BasicVariantGenerator                               │
+│ Scheduler                        AsyncHyperBandScheduler                             │
+│ Number of trials                 20                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+View detailed results here: /u/e6peters/ray_results/build_and_train_model_raytune_2025-01-22_14-40-24
+To visualize your results with TensorBoard, run: `tensorboard --logdir /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts`
+
+Trial status: 20 PENDING
+Current time: 2025-01-22 14:40:24. Total running time: 0s
+Logical resource usage: 0/20 CPUs, 0/0 GPUs
+╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                                  status              lr     hidden_size     depth │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ build_and_train_model_raytune_b9677_00000   PENDING    0.000265655              32         2 │
+│ build_and_train_model_raytune_b9677_00001   PENDING    0.000252115              32         1 │
+│ build_and_train_model_raytune_b9677_00002   PENDING    0.0083533                64         1 │
+│ build_and_train_model_raytune_b9677_00003   PENDING    0.00104612               16         3 │
+│ build_and_train_model_raytune_b9677_00004   PENDING    0.000110421              64         2 │
+│ build_and_train_model_raytune_b9677_00005   PENDING    0.00142274               32         3 │
+│ build_and_train_model_raytune_b9677_00006   PENDING    0.000124903              16         3 │
+│ build_and_train_model_raytune_b9677_00007   PENDING    0.00680146               64         1 │
+│ build_and_train_model_raytune_b9677_00008   PENDING    0.000228914              16         2 │
+│ build_and_train_model_raytune_b9677_00009   PENDING    0.000911055              16         1 │
+│ build_and_train_model_raytune_b9677_00010   PENDING    0.00122887               32         3 │
+│ build_and_train_model_raytune_b9677_00011   PENDING    0.000947265              64         2 │
+│ build_and_train_model_raytune_b9677_00012   PENDING    0.00076399               32         1 │
+│ build_and_train_model_raytune_b9677_00013   PENDING    0.00145312               64         1 │
+│ build_and_train_model_raytune_b9677_00014   PENDING    0.002836                 32         2 │
+│ build_and_train_model_raytune_b9677_00015   PENDING    0.00264496               16         3 │
+│ build_and_train_model_raytune_b9677_00016   PENDING    0.00337057               16         1 │
+│ build_and_train_model_raytune_b9677_00017   PENDING    0.00649458               64         3 │
+│ build_and_train_model_raytune_b9677_00018   PENDING    0.000421157              64         1 │
+│ build_and_train_model_raytune_b9677_00019   PENDING    0.0034343                32         1 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+[33m(raylet)[0m The node with node id: 2abd3652de3bd7e9f408b8f242ba3bb6d22de9b8e98ed8e4a02921c0 and address: 172.27.7.119 and node name: 172.27.7.119 has been marked dead because the detector has missed too many heartbeats from it. This can happen when a 	(1) raylet crashes unexpectedly (OOM, etc.) 
+	(2) raylet has lagging heartbeats due to slow network or busy workload.
+
+Trial build_and_train_model_raytune_b9677_00003 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00003/error.txt
+
+Trial build_and_train_model_raytune_b9677_00007 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00007/error.txt
+
+Trial build_and_train_model_raytune_b9677_00006 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00006/error.txt
+
+Trial build_and_train_model_raytune_b9677_00009 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00009/error.txt
+
+Trial build_and_train_model_raytune_b9677_00001 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00001/error.txt
+
+Trial build_and_train_model_raytune_b9677_00011 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00011/error.txt
+
+Trial build_and_train_model_raytune_b9677_00005 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00005/error.txt
+
+Trial build_and_train_model_raytune_b9677_00012 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00012/error.txt
+
+Trial build_and_train_model_raytune_b9677_00010 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00010/error.txt
+
+Trial build_and_train_model_raytune_b9677_00014 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00014/error.txt
+
+Trial build_and_train_model_raytune_b9677_00017 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00017/error.txt
+
+Trial build_and_train_model_raytune_b9677_00015 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00015/error.txt
+
+Trial build_and_train_model_raytune_b9677_00008 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00008/error.txt
+
+Trial build_and_train_model_raytune_b9677_00018 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00018/error.txt
+
+Trial build_and_train_model_raytune_b9677_00004 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00004/error.txt
+
+Trial build_and_train_model_raytune_b9677_00002 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00002/error.txt
+
+Trial build_and_train_model_raytune_b9677_00019 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00019/error.txt
+
+Trial build_and_train_model_raytune_b9677_00013 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00013/error.txt
+
+Trial build_and_train_model_raytune_b9677_00000 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00000/error.txt
+
+Trial build_and_train_model_raytune_b9677_00016 errored after 0 iterations at 2025-01-22 14:40:40. Total running time: 15s
+Error file: /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00016/error.txt
+
+Trial status: 20 ERROR
+Current time: 2025-01-22 14:40:40. Total running time: 15s
+Logical resource usage: 0/20 CPUs, 0/0 GPUs
+╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                                  status              lr     hidden_size     depth │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ build_and_train_model_raytune_b9677_00000   ERROR      0.000265655              32         2 │
+│ build_and_train_model_raytune_b9677_00001   ERROR      0.000252115              32         1 │
+│ build_and_train_model_raytune_b9677_00002   ERROR      0.0083533                64         1 │
+│ build_and_train_model_raytune_b9677_00003   ERROR      0.00104612               16         3 │
+│ build_and_train_model_raytune_b9677_00004   ERROR      0.000110421              64         2 │
+│ build_and_train_model_raytune_b9677_00005   ERROR      0.00142274               32         3 │
+│ build_and_train_model_raytune_b9677_00006   ERROR      0.000124903              16         3 │
+│ build_and_train_model_raytune_b9677_00007   ERROR      0.00680146               64         1 │
+│ build_and_train_model_raytune_b9677_00008   ERROR      0.000228914              16         2 │
+│ build_and_train_model_raytune_b9677_00009   ERROR      0.000911055              16         1 │
+│ build_and_train_model_raytune_b9677_00010   ERROR      0.00122887               32         3 │
+│ build_and_train_model_raytune_b9677_00011   ERROR      0.000947265              64         2 │
+│ build_and_train_model_raytune_b9677_00012   ERROR      0.00076399               32         1 │
+│ build_and_train_model_raytune_b9677_00013   ERROR      0.00145312               64         1 │
+│ build_and_train_model_raytune_b9677_00014   ERROR      0.002836                 32         2 │
+│ build_and_train_model_raytune_b9677_00015   ERROR      0.00264496               16         3 │
+│ build_and_train_model_raytune_b9677_00016   ERROR      0.00337057               16         1 │
+│ build_and_train_model_raytune_b9677_00017   ERROR      0.00649458               64         3 │
+│ build_and_train_model_raytune_b9677_00018   ERROR      0.000421157              64         1 │
+│ build_and_train_model_raytune_b9677_00019   ERROR      0.0034343                32         1 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Number of errored trials: 20
+╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                                    # failures   error file                                                                                                                                                                                              │
+├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ build_and_train_model_raytune_b9677_00000              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00000/error.txt │
+│ build_and_train_model_raytune_b9677_00001              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00001/error.txt │
+│ build_and_train_model_raytune_b9677_00002              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00002/error.txt │
+│ build_and_train_model_raytune_b9677_00003              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00003/error.txt │
+│ build_and_train_model_raytune_b9677_00004              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00004/error.txt │
+│ build_and_train_model_raytune_b9677_00005              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00005/error.txt │
+│ build_and_train_model_raytune_b9677_00006              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00006/error.txt │
+│ build_and_train_model_raytune_b9677_00007              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00007/error.txt │
+│ build_and_train_model_raytune_b9677_00008              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00008/error.txt │
+│ build_and_train_model_raytune_b9677_00009              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00009/error.txt │
+│ build_and_train_model_raytune_b9677_00010              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00010/error.txt │
+│ build_and_train_model_raytune_b9677_00011              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00011/error.txt │
+│ build_and_train_model_raytune_b9677_00012              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00012/error.txt │
+│ build_and_train_model_raytune_b9677_00013              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00013/error.txt │
+│ build_and_train_model_raytune_b9677_00014              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00014/error.txt │
+│ build_and_train_model_raytune_b9677_00015              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00015/error.txt │
+│ build_and_train_model_raytune_b9677_00016              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00016/error.txt │
+│ build_and_train_model_raytune_b9677_00017              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00017/error.txt │
+│ build_and_train_model_raytune_b9677_00018              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00018/error.txt │
+│ build_and_train_model_raytune_b9677_00019              1   /tmp/ray/session_2025-01-22_14-40-19_699186_881098/artifacts/2025-01-22_14-40-24/build_and_train_model_raytune_2025-01-22_14-40-24/driver_artifacts/build_and_train_model_raytune_b9677_00019/error.txt │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+

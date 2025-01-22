@@ -253,8 +253,13 @@ def trial_dirname_creator(trial):
 def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, 
 				config, logger, epoch_offset= 0):	
 	
-	ray.init(include_dashboard=False) # suppress dashboard resources
-
+	ray.init(
+		include_dashboard=False, 
+		#   num_cpus=hyper_settings.get("cpus_per_worker") * hyper_settings.get("max_concurrent_trials"), 
+		#   num_gpus=hyper_settings.get("gpus_per_worker") * hyper_settings.get("max_concurrent_trials"), 
+		  _temp_dir=None, 
+		  ignore_reinit_error=True)
+	
 	# config should have tune=True
 	scheduler = ASHAScheduler(
 		metric="val_acc",

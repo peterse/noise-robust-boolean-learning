@@ -245,8 +245,13 @@ def trial_dirname_creator(trial):
 def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, 
 				config, logger, epoch_offset= 0):	
 	
-	ray.init(include_dashboard=False) # suppress dashboard resources
-
+	# https://github.com/ray-project/ray/issues/30012#issuecomment-1305006855 I guess
+	ray.init(
+		include_dashboard=False, 
+		#   num_cpus=hyper_settings.get("total_cpus"), 
+		#   num_gpus=hyper_settings.get("total_gpus"), 
+		  _temp_dir=None, 
+		  ignore_reinit_error=True)
 	# config should have tune=True
 	scheduler = ASHAScheduler(
 		time_attr="training_iteration",
