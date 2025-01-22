@@ -11,11 +11,13 @@ import torch
 import torch.nn as nn
 from torch import optim
 
+import ray
 from ray.tune import CLIReporter, Tuner
 from ray.tune.schedulers import ASHAScheduler
 from ray import tune, train
 from ray.train import RunConfig
 from ray.train.torch import TorchTrainer, get_device
+from ray.tune.experiment.trial import Trial
 # from ray.util.check_serialize import inspect_serializability
 from mindreadingautobots.utils.training import EarlyStopping
 from mindreadingautobots.utils.helper import save_checkpoint
@@ -116,7 +118,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 	itr= 0
 
 	num_batches = int(train_loader.num_batches)
-	early_stopping = EarlyStopping(patience=50, delta=0.0, logger=logger)
+	early_stopping = EarlyStopping(patience=200, delta=0.0, logger=logger)
 
 	for epoch in range(1, config.epochs + 1):
 		train_loss_epoch = 0.0
@@ -170,9 +172,11 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 				"train_acc": train_acc_epoch,
 				"val_acc": val_acc_epoch,
 				"noiseless_val_acc": noiseless_val_acc_epoch,
+				"epoch": epoch,
 			})
 
 		if val_acc_epoch > max_val_acc :
+
 			max_val_acc = val_acc_epoch
 			best_epoch= epoch
 			curr_train_acc= train_acc_epoch
@@ -186,7 +190,8 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 				"noiseless_val_acc": noiseless_val_acc_epoch,
 				'lr': lr_epoch
 			}
-			save_checkpoint(state, 1, logger, config.model_path, config.ckpt)  # Only save best model
+
+			# save_checkpoint(state, epoch, logger, config.model_path, config.ckpt)  # Only save best model
 
 		# Break if we haven't had consistent progress 
 		if early_stopping.early_stop:
@@ -211,14 +216,24 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 			})
 	
 	if config.results:
-		store_results(config, max_val_acc, curr_train_acc, best_epoch)
+		store_results(config, max_val_acc, curr_train_acc, best_epoch, noiseless_val_acc_epoch)
 		logger.info('Scores saved at {}'.format(config.result_path))
 
 	
-def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader, voc, 
-				logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0,
-				):
+class TrialTerminationReporter(CLIReporter):
+    def __init__(self):
+        super(TrialTerminationReporter, self).__init__()
+        self.num_terminated = 0
+
+    def should_report(self, trials, done=False):
+        """Reports only on trial termination events."""
+        old_num_terminated = self.num_terminated
+        self.num_terminated = len([t for t in trials if t.status == Trial.TERMINATED])
+        return self.num_terminated > old_num_terminated
+	
+
+def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader, noiseless_val_loader, voc, 
+				logger, epoch_offset= 0):
 	"""Build and train a model with the given hyperparameters
 	
 	Reasons why this exists:
@@ -229,28 +244,30 @@ def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader
 	for key, value in hyper_config.items():
 		setattr(config, key, value)
 	model = build_model(config, voc, device, logger)
-	train_model(model, train_loader, val_loader, voc, device, config, logger, epoch_offset, min_val_loss, max_val_acc)
+	train_model(model, train_loader, val_loader, noiseless_val_loader, voc, device, config, logger, epoch_offset)
 
 def trial_dirname_creator(trial):
     return f"{trial.trainable_name}_{trial.trial_id}"
 
-def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc, 
-				config, logger, epoch_offset= 0, min_val_loss=1e7, 
-				max_val_acc=0.0):	
+
+def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, 
+				config, logger, epoch_offset= 0):	
 	
-	
+	ray.init(include_dashboard=False) # suppress dashboard resources
+
 	# config should have tune=True
 	scheduler = ASHAScheduler(
-		metric="train_loss",
-		mode="min",
-		max_t=hyper_settings.get("epochs"), # I'm not sure what this kwarg does and neither is the documentation
-		grace_period=1,
+		metric="val_acc",
+		mode="max",
+		max_t=hyper_settings.get("max_iterations"), # I'm not sure what this kwarg does and neither is the documentation
+		grace_period=hyper_settings.get("grace_period"),
 		reduction_factor=2)
 
-	reporter = CLIReporter(
-		metric_columns=["loss", "training_iteration", "mean_accuracy"],
-		print_intermediate_tables=False,
-		)
+	# reporter = CLIReporter(
+	# 	metric_columns=["loss", "training_iteration", "mean_accuracy"],
+	# 	print_intermediate_tables=False,
+		# )
+	reporter = TrialTerminationReporter()
 
 	tune_config = tune.TuneConfig(
 		num_samples=hyper_settings.get("num_samples"),
@@ -261,23 +278,24 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 		
 	run_config = RunConfig(
 		progress_reporter=reporter,
-		stop={"training_iteration": config.epochs, "mean_accuracy": 0.8},
+		stop={"training_iteration": config.epochs, "val_acc": 0.8},
 	)
 	trainable = tune.with_parameters(
 					build_and_train_model_raytune, 
 					config=config,
 					train_loader=train_loader,
 					val_loader=val_loader,
+					noiseless_val_loader=noiseless_val_loader,
 					voc=voc,
 					logger=logger,
 					epoch_offset=epoch_offset,
-					min_val_loss=min_val_loss,
-					max_val_acc=max_val_acc
 					)
 	
 	resources = tune.with_resources(
 		trainable,
-		{"cpu": hyper_settings.get("cpus_per_worker"), "gpu": hyper_settings.get("gpus_per_worker")},
+		{
+			"cpu": hyper_settings.get("cpus_per_worker"), 
+   			"gpu": hyper_settings.get("gpus_per_worker")},
 	)
 	
 	tuner = Tuner(
@@ -288,6 +306,10 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 	)
 	result = tuner.fit()
 
+	df = result.get_dataframe()
+	print(df)
+	with open(config.hyper_path, 'a') as f:
+		f.write(df.to_string(header=True, index=False))
 	return result			
 
 # def train_model_iter(model, voc, device, config, logger):
@@ -410,25 +432,54 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, voc,
 
 		
 def run_validation(config, model, data_loader, voc, device, logger):
-	model.eval()
-	batch_num = 0
-	val_acc_epoch = 0.0
+    """
+    Run validation on the given dataset and compute accuracy.
 
-	with torch.no_grad():
-		for batch, i in enumerate(range(0, len(data_loader), data_loader.batch_size)):
-			source, targets, word_lens= data_loader.get_batch(i)
-			source, targets, word_lens= source.to(device), targets.to(device), word_lens.to(device)
-			acc = model.evaluator(source, targets, word_lens, config)
+    Args:
+        config: Configuration object with training parameters.
+        model: PyTorch model to evaluate.
+        data_loader: DataLoader object for validation data.
+        voc: Vocabulary object.
+        device: Device to run the model on (e.g., "cpu" or "cuda").
+        logger: Logger object for logging messages.
 
-			val_acc_epoch+= acc
-			batch_num+=1
-	
-	if batch_num != data_loader.num_batches:
-		pdb.set_trace()
+    Returns:
+        val_acc_epoch (float): Average accuracy over the validation dataset.
+    """
+    logger.info("Starting validation...")
+    model.eval()  # Switch model to evaluation mode
+    batch_num = 0
+    val_acc_epoch = 0.0
 
-	val_acc_epoch = val_acc_epoch/data_loader.num_batches
+    with torch.no_grad():  # Disable gradient computation for validation
+        for batch, i in enumerate(range(0, len(data_loader), data_loader.batch_size)):
+            try:
+                # Fetch batch data
+                source, targets, word_lens = data_loader.get_batch(i)
+                source, targets, word_lens = source.to(device), targets.to(device), word_lens.to(device)
 
-	return val_acc_epoch
+                # Evaluate the batch
+                acc = model.evaluator(source, targets, word_lens, config)
+
+                # Log individual batch accuracy
+                logger.debug(f"Batch {batch_num}: Accuracy={acc}")
+                val_acc_epoch += acc
+                batch_num += 1
+            except Exception as e:
+                logger.error(f"Error during validation at batch {batch_num}: {e}")
+                raise
+
+    # Ensure all batches were processed
+    if batch_num != data_loader.num_batches:
+        logger.warning(
+            f"Number of processed batches ({batch_num}) does not match total batches ({data_loader.num_batches})"
+        )
+
+    # Compute average validation accuracy
+    val_acc_epoch = val_acc_epoch / max(1, data_loader.num_batches)
+    logger.info(f"Validation completed: Average Accuracy={val_acc_epoch:.4f}")
+    return val_acc_epoch
+
 
 
 # def run_validation_iter(config, model, samples, voc, device):
