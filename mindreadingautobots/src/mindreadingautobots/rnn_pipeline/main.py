@@ -237,7 +237,7 @@ def main():
 			"max_concurrent_trials": 1,
 			"grace_period": 25, # minimum epochs to give each trial
 			"max_iterations": 1000, # this is the max epochs any trial is allowed to run
-			"num_samples": 20, # this is equal to total trials if no grid search
+			"num_samples": 1, # this is equal to total trials if no grid search
 		}
 
 		min_val_loss = torch.tensor(float('inf')).item()
