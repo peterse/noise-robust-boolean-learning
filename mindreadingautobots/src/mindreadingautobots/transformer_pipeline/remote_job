@@ -1,0 +1,1 @@
+python -m main -mode tune -dataset sparse_parity_k4_nbits10_n5000_bf0_seed1234 -model_type SAN -lr 0.001 -d_model 32 -d_ffn 32 | tee hyperparameters.log
