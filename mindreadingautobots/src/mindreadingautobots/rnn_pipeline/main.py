@@ -128,7 +128,8 @@ def main():
 
 	if config.results:
 		config.result_path = os.path.join(result_folder, 'val_results_{}.json'.format(config.dataset))
-	
+	config.hyper_path = os.path.join(result_folder, 'tuning_results_{}.json'.format(config.dataset))
+
 	if is_train or is_tune:
 		create_save_directories(config.log_path, config.model_path, result_folder)
 	else:
