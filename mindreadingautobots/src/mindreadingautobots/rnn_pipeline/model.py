@@ -305,7 +305,11 @@ def tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless
 	)
 	result = tuner.fit()
 
-	return result
+	df = result.get_dataframe()
+	print(df)
+	with open(config.hyper_path, 'a') as f:
+		f.write(df.to_string(header=True, index=False))
+	return result			
 
 def run_validation(config, model, data_loader, voc, device, logger):
 	model.eval()

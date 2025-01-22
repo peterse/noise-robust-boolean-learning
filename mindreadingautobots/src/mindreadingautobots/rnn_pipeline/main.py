@@ -230,11 +230,11 @@ def main():
 		# To avoid overutilization, set `max_concurrent_trials`
 		# https://docs.ray.io/en/latest/tune/tutorials/tune-resources.html
 		hyper_settings = {
-			"total_cpus": 1,
+			"total_cpus": 20,
 			"total_gpus": 0,
-			"cpus_per_worker": 1, #i.e. cpus per trial
+			"cpus_per_worker": 2, #i.e. cpus per trial
 			"gpus_per_worker": 0,
-			"max_concurrent_trials": 1,
+			"max_concurrent_trials": 10,
 			"grace_period": 25, # minimum epochs to give each trial
 			"max_iterations": 1000, # this is the max epochs any trial is allowed to run
 			"num_samples": 1, # this is equal to total trials if no grid search
