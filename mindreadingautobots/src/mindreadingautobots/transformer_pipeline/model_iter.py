@@ -241,6 +241,7 @@ def build_and_train_model_raytune(hyper_config, config, train_loader, val_loader
 	 - We need to distribute the model training/building pipeline to multiple workers
 	"""
 	device = get_device()
+	print("raytune device:", device)
 	for key, value in hyper_config.items():
 		setattr(config, key, value)
 	model = build_model(config, voc, device, logger)

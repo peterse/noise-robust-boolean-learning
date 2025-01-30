@@ -259,7 +259,7 @@ def parity_4lookback_nondeterministic(n_data, n_bits, nondeterm, seed):
 
 
 
-def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
+def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=None):
 
     """Generate a dataset where the final bit is the parity of a subset k of the n bits.
     
@@ -279,7 +279,8 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
 
     """
     np.random.seed(seed)
-    subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
     
     in_subset = np.zeros(n_bits-1, dtype=np.bool_)
     in_subset[subseq_idx] = 1
@@ -301,18 +302,34 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0):
     return X, Z, subseq_idx
 
 
-def sparity_k4(n_data, n_bits, p_bitflip, seed):
-    """Wrapper for sparse_parity_k_n with k=4"""
-    return sparse_parity_k_n(n_bits, 4, n_data, p_bitflip, seed)
-
-
-def sparse_not_majority_k_n(n, k, n_data, p_bitflip=0.0):
+def sparse_majority_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=None):
     """Generate a dataset where the final bit is a function of a subset k of the n bits.
     
     Args:
-        n: number of bits
+        n_bits: number of bits
         k: number of bits in the subset, to be chosen randomly.
         n_data: number of data points
         p_bitflip: probability of flipping a bit
     """
-    pass
+    np.random.seed(seed)
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
+    
+    in_subset = np.zeros(n_bits-1, dtype=np.bool_)
+    in_subset[subseq_idx] = 1
+    X = np.random.randint(0, 2, size=(n_data, n_bits))
+
+    for i in range(n_data):
+        seq = X[i]
+        if np.sum(seq[subseq_idx]) <= k // 2:
+            X[i, -1] = 0
+        else:
+            X[i, -1] = 1
+
+    Z = X
+    if p_bitflip > 0:
+        flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
+        flips[:,-1] = 0 # we do not flip the last 'label' bit.
+        Z = np.logical_xor(X, flips).astype(int)
+
+    return X, Z, subseq_idx
