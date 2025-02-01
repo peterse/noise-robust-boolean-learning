@@ -1,0 +1,20 @@
+{
+    "0": {
+        "run_name": "0",
+        "val_score": 0.5112819488817891,
+        "noiseless_val_acc_epoch": 0.5112819488817891,
+        "train_acc": 0.4964171974522293,
+        "best_epoch": 2,
+        "dataset": "sparse_parity_k4_nbits10_n5000_bf0_seed1234",
+        "depth": 1,
+        "dropout": 0.05,
+        "lr": 0.001,
+        "batch_size": 32,
+        "epochs": 2,
+        "opt": "adam",
+        "emb_size": 128,
+        "hidden_size": 128,
+        "heads": 4,
+        "d_model": 64
+    }
+}

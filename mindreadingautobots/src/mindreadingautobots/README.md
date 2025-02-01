@@ -3,9 +3,7 @@
 The set of command line arguments available can be seen in the respective `args.py` file.
 
 
-#### Training a specific rnn on a specific dataset
-
-From `rnn_pipeline`:
+#### Training a specific model on a specific dataset
 
 Run training for a vanilla RNN (or, switch cell_type to LSTM):
 

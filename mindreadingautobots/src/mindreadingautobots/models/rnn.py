@@ -1,154 +1,167 @@
-"""rnn.py - RNN model for forecasting and next-bit prediction plus hyperparameter tuning."""
+from unicodedata import bidirectional
 import torch
-from torch.nn import functional as F
 import torch.nn as nn
-from torch.utils.data import DataLoader
+import torch.nn.functional as F
+from torch import optim
+import numpy as np
+import pdb
 
-from ray import train
+class RNNWrapper(nn.Module):
+	# This wrapper is specific to RNNModel!
+	def __init__(self, config=None, voc=None, device=None, logger=None):
+		super(RNNWrapper, self).__init__()
 
+		self.config = config
+		self.device = device
+		self.logger = logger
+		self.voc = voc
+		self.threshold = 0.5
 
+		if self.logger:
+			self.logger.debug('Initalizing Model...')
+		self._initialize_model()
 
+		if self.logger:
+			self.logger.debug('Initalizing Optimizer and Criterion...')
+		self._initialize_optimizer()
 
-class BinaryRNN(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, n_layers):
-        super(BinaryRNN, self).__init__()
-        
-        self.hidden_dim = hidden_dim
-        self.n_layers = n_layers
-        
-        self.rnn = nn.RNN(input_dim, hidden_dim, n_layers, batch_first=True, nonlinearity='relu')
-        self.fc = nn.Linear(hidden_dim, output_dim)
-    
-    def forward(self, x, hidden):
-        """
-        Compute the forward pass for a given hidden layer. 
+		self.criterion = nn.NLLLoss()
+	
 
-        NOTE: the output is flattened before being returned.
+	def _initialize_model(self):
 
-        Args:
-            x: (batch_size, seq_length, input_size)
-            hidden: (n_layers, batch_size, hidden_dim)
-
-        Returns:
-            output: (batch_size*seq_length, output_dim)
-            hidden: (n_layers, batch_size, hidden_dim)
-        """
-        # x (batch_size, seq_length, input_size)
-        # hidden (n_layers, batch_size, hidden_dim)
-        # r_out (batch_size, time_step, hidden_size)
-        batch_size = x.size(0)
-        
-        # get RNN outputs
-        r_out, hidden = self.rnn(x, hidden)
-
-        # shape output to be (batch_size*seq_length, hidden_dim)
-        r_out = r_out.reshape(-1, self.hidden_dim)  
-        
-        # get final output 
-        output = self.fc(r_out)
-        
-        return output, hidden
-    
-    def predict(self, x, hidden):
-        """Predict the next bit given the current input and hidden state."""
-        self.eval()
-        batch_size, seq_length, _ = x.shape
-        output, _ = self.forward(x, hidden)
-        activation = torch.nn.functional.sigmoid(output).reshape(-1, 1)
-        predicted = (activation > 0.5).float()
-        return predicted.reshape(batch_size, seq_length, 1)
-    
-    
-def train_binary_rnn(config, data, checkpoint_dir=None, verbose=False, return_model=False):
-    """Train the RNN from within a raytune context. 
-    
-    Everything in this function needs to be reachable from the scope
-    of a raytune process called from wherever you're calling it from.
-
-    TODO: model checkpointing
-
-    Args:
-        config: raytune-compatible dictionary of hyperparameters
-
-    Returns:
-        model: the trained model
-        hidden: the hidden state for the trained model
-
-    """
-    # batch_size, epoch and iteration
-    BATCH_SIZE = 10
-    epochs = config["epochs"]
-    n_eval = config["n_eval"]
-
-    # Data setup: WE have a fixed train/val split of 80/20
-    n_train = int(len(data) * 0.8)
-    data_loader = DataLoader(data[:n_train], batch_size=BATCH_SIZE, shuffle=True)
-    val_data_loader = DataLoader(data[n_train:], batch_size=BATCH_SIZE, shuffle=False)
-    seq_len = data.shape[1]
-
-    print(config)
-    # Model setup
-    hidden = None # initial hidden state
-    model = BinaryRNN(1, config["hidden_size"], 1, config["num_layers"])
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"])
-
-    for epoch in range(epochs):  # You can adjust the number of epochs
-        model.train()
-        for X in data_loader:
-            assert X.shape[0] == BATCH_SIZE # this is for if you didn't divide your dataset evenly, dummy
-            inputs = X[:, :-1,:] # (batch_size, seq_length, 1)
-            target = X[:, 1:,:]
-            optimizer.zero_grad()
-            output, hidden = model(inputs, hidden) # output is of shape (batch_size*seq_length, 1)
-            hidden = hidden.data # this is to prevent backpropagation through the entire dataset
-            # note, we are using BCEWithLogitsLoss, which contains a sigmoid activation already
-            train_loss = criterion(output, target.reshape(-1, 1))
-            train_loss.backward()
-            optimizer.step()
+		self.model = RNNModel(self.config.cell_type, self.voc.nwords, self.config.nlabels, 
+			self.config.emb_size, self.config.hidden_size, self.config.depth, 
+			self.config.dropout, self.config.tied).to(self.device)
 
 
-        # Validation loss gets reported to raytune
-        val_loss = 0.0
-        val_steps = 0
-        correct = 0
-        model.eval()
-        for _ in range(n_eval):
-            X_val = next(iter(val_data_loader))
-            inputs_val = X_val[:, :-1,:]
-            target_val = X_val[:, 1:,:]
-            target_flat = target_val.reshape(-1, 1)
-            optimizer.zero_grad()
-            output_val, _ = model(inputs_val, hidden) # output is of shape (batch_size*seq_length, 1)
-            # Compute accuracy
-            # Convert the sigmoid output to a binary prediction
-            activation = torch.nn.functional.sigmoid(output_val).reshape(-1, 1)
-            predicted = (activation > 0.5).float()
-            Z = (predicted == target_flat).long()
-            correct += Z.sum().item()
+	def _initialize_optimizer(self):
+		self.params = self.model.parameters()
 
-            # Compute loss
-            loss = criterion(output_val,  target_flat)
-            val_loss += loss.item()
-            val_steps += 1
-            if verbose and False:
-                print("output", output_val.flatten())
-                print(output_val.shape)
-                print("act", activation.flatten())
-                print("predicted", predicted.flatten())
-                print("target", target_flat.flatten())
-        # if val_steps > 4: # for mini-batching on the validation set
-        #     break
+		if self.config.opt == 'adam':
+			self.optimizer = optim.Adam(self.params, lr=self.config.lr)
+		elif self.config.opt == 'adadelta':
+			self.optimizer = optim.Adadelta(self.params, lr=self.config.lr)
+		elif self.config.opt == 'asgd':
+			self.optimizer = optim.ASGD(self.params, lr=self.config.lr)
+		elif self.config.opt =='rmsprop':
+			self.optimizer = optim.RMSprop(self.params, lr=self.config.lr)
+		else:
+			self.optimizer = optim.SGD(self.params, lr=self.config.lr)
+			self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'max', factor=self.config.decay_rate, patience=self.config.decay_patience, verbose=True)
+	
+	def trainer(self, source, targets, lengths, hidden, config, device = None, logger=None):
 
-        # Report all metrics in a single `report` call!
-        metrics = {
-                    "loss": (val_loss / val_steps),
-                    "mean_accuracy": correct / (BATCH_SIZE * seq_len * val_steps),
-                    "train_loss": train_loss.item()
-                    }
-        train.report(metrics)
-        if verbose:
-            print(metrics)
+		self.optimizer.zero_grad()
+		output, hidden = self.model(source, hidden, lengths)
+		loss = self.criterion(output, targets)
+		loss.backward()
+ 
+		if self.config.max_grad_norm >0:   
+			torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.max_grad_norm)
+		self.optimizer.step()
 
-    if return_model:
-        return (model, hidden)
+		hidden = self.repackage_hidden(hidden)
+		
+		return loss.item()
+	
+	def evaluator(self, source, targets, lengths, config, device=None, hidden=None):
+		
+		output, hidden = self.model(source, hidden, lengths)
+		preds = output.cpu().numpy()
+		preds = preds.argmax(axis=1)
+		labels= targets.cpu().numpy()
+		acc= np.array(preds==labels, np.int32).sum() / len(targets)
+		return acc
+		
+	def repackage_hidden(self, h):
+		"""Wraps hidden states in new Tensors, to detach them from their history."""
+
+		if isinstance(h, torch.Tensor):
+			return h.detach()
+		else:
+			return tuple(self.repackage_hidden(v) for v in h)
+
+
+class RNNModel(nn.Module):
+	"""Container module with an embedder, a recurrent module, and a classifier."""
+
+	def __init__(self, rnn_type, ntoken, noutputs, ninp, nhid, nlayers, dropout=0.1, tie_weights=False, is_embedding=True):
+		super(RNNModel, self).__init__()
+		self.drop = nn.Dropout(dropout)
+		if is_embedding:
+			self.encoder = nn.Embedding(ntoken, ninp)
+		else:
+			ninp = ntoken
+			self.encoder = nn.Embedding(ntoken, ninp)
+			self.encoder.weight.data =torch.eye(ntoken)
+			self.encoder.weight.requires_grad = False
+		
+		self.bi = bidirectional
+
+		if rnn_type in ['LSTM', 'GRU']:
+			self.rnn = getattr(nn, rnn_type)(ninp, nhid, nlayers, dropout=dropout)
+		else:
+			try:
+				nonlinearity = {'RNN_TANH': 'tanh', 'RNN_RELU': 'relu'}[rnn_type]
+			except KeyError:
+				raise ValueError( """An invalid option for `--model` was supplied,
+								 options are ['LSTM', 'GRU', 'RNN_TANH' or 'RNN_RELU']""")
+			self.rnn = nn.RNN(ninp, nhid, nlayers, nonlinearity=nonlinearity, dropout=dropout)
+		
+		
+		self.decoder = nn.Linear(nhid, noutputs)
+
+		self.sigmoid = nn.Sigmoid()
+		self.softmax = nn.LogSoftmax(dim=1)
+
+		if tie_weights:
+			if nhid != ninp:
+				raise ValueError('When using the tied flag, nhid must be equal to emsize')
+			self.decoder.weight = self.encoder.weight
+		
+
+		for p in self.parameters():
+			if p.dim() > 1:
+				nn.init.xavier_uniform_(p)
+
+		self.rnn_type = rnn_type
+		self.nhid = nhid
+		self.nlayers = nlayers
+
+	def init_weights(self):
+		initrange = 0.1
+
+		self.decoder.bias.data.zero_()
+		self.decoder.weight.data.uniform_(-initrange, initrange)
+
+	def forward(self, input, hidden, lengths):
+		
+		lengths = lengths.cpu()
+		inp_emb = self.drop(self.encoder(input))
+
+
+		emb_packed = nn.utils.rnn.pack_padded_sequence(inp_emb, lengths.cpu(), enforce_sorted = False)
+		output_packed, hidden = self.rnn(emb_packed, hidden)
+		output_padded, _ = nn.utils.rnn.pad_packed_sequence(output_packed)
+
+		output_flat = output_padded.view(-1, self.nhid)
+		slots = input.size(1)
+		out_idxs= [(lengths[i].item() -1)*slots + i for i in range(len(lengths))]   # Indices of last hidden state
+		out_vecs= output_flat[out_idxs]
+		output = self.drop(out_vecs)
+
+		decoded = self.decoder(output)
+		decoded = self.softmax(decoded)
+		return decoded, hidden
+
+	def init_hidden(self, bsz):
+		weight = next(self.parameters())
+		if self.rnn_type == 'LSTM':
+			return (weight.new_zeros(self.nlayers, bsz, self.nhid),
+				weight.new_zeros(self.nlayers, bsz, self.nhid))
+		else:
+			return weight.new_zeros(self.nlayers, bsz, self.nhid)
+
+
+
