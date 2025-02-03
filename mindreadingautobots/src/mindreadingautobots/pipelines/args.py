@@ -43,18 +43,18 @@ def build_parser():
 	parser.add_argument('-depth', type=int, default=2, help='Number of layers (encoder and decoder layers for SAN, just depth for RNN)')
 	parser.add_argument('-dropout', type=float, default=0.05, help= 'Dropout probability for input/output/state units (0.0: no dropout)')
 
-	# RNN PARAMETERS
-	parser.add_argument('-cell_type', type=str, default='LSTM', choices= ['LSTM', 'GRU', 'RNN_TANH', 'RNN_RELU'],  help='RNN cell type, default: lstm')
-	parser.add_argument('-emb_size', type=int, default=128, help='Embedding dimensions of inputs')
-	parser.add_argument('-hidden_size', type=int, default=128, help='Number of hidden units in each layer')
+	# RNN PARAMETERS: 
+	parser.add_argument('-cell_type', type=str, choices= ['LSTM', 'GRU', 'RNN_TANH', 'RNN_RELU'],  help='RNN cell type, default: lstm')
+	parser.add_argument('-emb_size', type=int, help='Embedding dimensions of inputs')
+	parser.add_argument('-hidden_size', type=int, help='Number of hidden units in each layer')
 	parser.add_argument('-tied', dest='tied', action='store_true', help='Tied Weights in input and output embeddings')
 	parser.add_argument('-no-tied', dest='tied', action='store_false', help='Without Tied Weights in input and output embeddings')
 	parser.set_defaults(tied=False)
 
 	# TRANSFORMER PARAMETERS
-	parser.add_argument('-d_model', type=int, default=64, help='Embedding size in Transformer')
-	parser.add_argument('-d_ffn', type=int, default=64, help='Hidden size of FFN in Transformer')
-	parser.add_argument('-heads', type=int, default=4, help='Number of Attention heads in each layer')
+	parser.add_argument('-d_model', type=int, help='Embedding size in Transformer')
+	parser.add_argument('-d_ffn', type=int, help='Hidden size of FFN in Transformer')
+	parser.add_argument('-heads', type=int, help='Number of Attention heads in each layer')
 	parser.add_argument('-pos_encode', default='learnable', choices= ['absolute','learnable'], help='Type of position encodings')
 	parser.add_argument('-mask', dest='mask', action='store_true', help='Pos Mask')
 	parser.add_argument('-no-mask', dest='mask', action='store_false', help='Do not Pos Mask')
@@ -64,7 +64,7 @@ def build_parser():
 	parser.add_argument('-init_range', type=float, default=0.08, help='Initialization range for seq2seq model')
 
 	# OPTIMIZATION
-	parser.add_argument('-lr', type=float, default=0.001, help='Learning rate')
+	parser.add_argument('-lr', type=float, help='Learning rate')
 	parser.add_argument('-decay_patience', type=int, default=3, help='Wait before decaying learning rate')
 	parser.add_argument('-decay_rate', type=float, default=0.2, help='Amount by which to decay learning rate on plateu')
 	parser.add_argument('-max_grad_norm', type=float, default=0.25, help='Clip gradients to this norm')

@@ -30,10 +30,9 @@ class RNNWrapper(nn.Module):
 
 	def _initialize_model(self):
 
-		self.model = RNNModel(self.config.cell_type, self.voc.nwords, self.config.nlabels, 
+		self.model = RNNModel(self.config.cell_type, 2, 2, 
 			self.config.emb_size, self.config.hidden_size, self.config.depth, 
 			self.config.dropout, self.config.tied).to(self.device)
-
 
 	def _initialize_optimizer(self):
 		self.params = self.model.parameters()

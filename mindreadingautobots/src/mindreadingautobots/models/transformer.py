@@ -31,7 +31,7 @@ class TransformerWrapper(nn.Module):
 	def _initialize_model(self):
 
 		# self.config.d_ff = 2*self.config.d_model # uh this attr was spelled wrong when I found it, yikes?
-		self.model = TransformerCLF(self.voc.nwords, self.config.nlabels, self.config.d_model,
+		self.model = TransformerCLF(self.voc.nwords, 2, self.config.d_model,
 		self.config.heads, self.config.d_ffn, self.config.depth, 
 		self.config.dropout, self.config.pos_encode, mask= self.config.mask ).to(self.device)
 

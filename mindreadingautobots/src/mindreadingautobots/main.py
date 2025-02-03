@@ -14,14 +14,12 @@ except ImportError:
 	import pickle
 
 from ray import tune
-from mindreadingautobots.pipelines.training import train_model
-from mindreadingautobots.pipelines.tuning import tune_model
-from mindreadingautobots.models.transformer import TransformerWrapper
-from mindreadingautobots.models.rnn import RNNWrapper
+from mindreadingautobots.pipelines.training import train_model, load_data, build_model
+from mindreadingautobots.pipelines import tuning
 
-from mindreadingautobots.utils.dataloader import Corpus, Sampler
+
 from mindreadingautobots.utils.helper import Voc, gpu_init_pytorch, create_save_directories, get_latest_checkpoint, count_parameters
-from mindreadingautobots.utils.logger import get_logger
+from mindreadingautobots.utils.logger import init_logger
 
 from mindreadingautobots.pipelines.args import build_parser
 
@@ -31,91 +29,15 @@ global model_folder
 global result_folder
 global data_path
 
-log_folder = 'logs'
-model_folder = 'models'
-result_folder = './out/'
-
-data_path = 'data/'
-data_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', data_path))
-
-# navigate to two directories up where /data is stored
-# cwd = os.getcwd()
-# data_path = os.path.join(os.path.dirname(os.path.dirname(cwd)), data_path)
-
-# board_path = './runs/'
-
-
-def build_model(config, voc, device, logger):
-	if config.model_type == 'RNN':
-		logger.info('Building RNN Model')
-		model = RNNWrapper(config, voc, device, logger)
-	elif config.model_type == 'SAN':
-		logger.info('Building Transformer Model')
-		model = TransformerWrapper(config, voc, device, logger)
-	model = model.to(device)
-	return model
-
-
-def load_data(config, logger):
-	'''
-		Loads the data from the datapath in torch dataset form
-
-		Args:
-			config (dict) : configuration/args
-			logger (logger) : logger object for logging
-
-		Returns:
-			dataloader(s) 
-	'''
-	if config.mode == 'train' or config.mode == 'tune':
-		logger.debug('Loading Training Data...')
-
-		'''Create Vocab'''
-		train_path = os.path.join(data_path, config.dataset, 'train.pkl')
-		val_path = os.path.join(data_path, config.dataset, 'val.pkl')
-		noiseless_val_path = os.path.join(data_path, config.dataset, 'noiseless_val.pkl')
-		# test_path = os.path.join(data_path, config.dataset, 'test.tsv')
-		voc= Voc()
-		voc.create_vocab_dict(config, path= train_path, debug = config.debug)
-		# voc.create_vocab_dict(config, path= val_path, debug = config.debug)
-		# voc.create_vocab_dict(config, path= test_path, debug = config.debug)
-
-		'''Load Datasets'''
-		train_corpus = Corpus(train_path, voc, debug = config.debug)
-		train_loader = Sampler(train_corpus, voc, config.batch_size)
-
-		val_corpus = Corpus(val_path, voc, debug = config.debug)		
-		val_loader = Sampler(val_corpus, voc, config.batch_size)
-
-		noiseless_val_corpus = Corpus(noiseless_val_path, voc, debug = config.debug)
-		noiseless_val_loader = Sampler(noiseless_val_corpus, voc, config.batch_size)
-
-		msg = 'Training and Validation Data Loaded:\nTrain Size: {}\nVal Size: {}'.format(len(train_corpus.data), len(val_corpus.data))
-		logger.info(msg)
-		
-		return voc, train_loader, val_loader, noiseless_val_loader
-	else:
-		logger.critical('Invalid Mode Specified')
-		raise Exception('{} is not a valid mode'.format(config.mode))
 
 
 def main():
-	'''Read arguments'''
-
 	print('Starting....')
+
+	'''Read arguments'''
 	parser = build_parser()
 	args = parser.parse_args()
 	config = args
-	mode= config.mode # train, test, tune
-
-	if mode == 'train':
-		is_train = True
-	else:
-		is_train= False
-
-	is_tune = False
-	if mode == 'tune':
-		is_tune = True
 	
 	''' Set seed for reproducibility'''
 	np.random.seed(config.seed)
@@ -129,33 +51,38 @@ def main():
 		device = torch.device('cpu')
 
 	'''Run Config files/paths'''
+	log_folder = 'train_results/logs'
+	model_folder = 'train_results/models'
+	result_folder = '/out/'
+	data_path = 'data/'
 	run_name = config.run_name
+
+	config.data_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', data_path))
 	config.log_path = os.path.join(log_folder, run_name)
 	config.model_path = os.path.join(model_folder, config.dataset, run_name)
+	config.abs_path = os.path.dirname(os.path.abspath(__file__)) # current file's path
 
-	vocab_path = os.path.join(config.model_path, 'vocab.p')
-	config_file = os.path.join(config.model_path, 'config.p')
-	log_file = os.path.join(config.log_path, 'log.txt')
+	if config.mode == 'train':
+		vocab_path = os.path.join(config.model_path, 'vocab.p')
+		config_file = os.path.join(config.heads, 'config.p')
+		log_file = os.path.join(config.log_path, 'log.txt')
 
-	if config.results:
-		config.result_path = os.path.join(result_folder, 'val_results_{}.json'.format(config.dataset))
-	config.hyper_path = os.path.join(result_folder, 'tuning_results_{}.json'.format(config.dataset))
+		if config.results:
+			config.result_path = os.path.join(result_folder, 'val_results_{}.json'.format(config.dataset))
 
-	if is_train or is_tune:
-		create_save_directories(config.log_path, config.model_path, result_folder)
-	else:
-		create_save_directories(config.log_path, None, result_folder)
-	
-	logger = get_logger(run_name, log_file, logging.DEBUG)
-	logger.debug('Created Relevant Directories')
-	logger.info('Experiment Name: {}'.format(config.run_name))
-	
-	if is_train or is_tune:
+		if config.mode == 'train' or config.mode == 'tune':
+			create_save_directories(config.log_path, config.model_path, result_folder)
+		else:
+			create_save_directories(config.log_path, None, result_folder)
+		
+		logger = init_logger(run_name, log_file_path=log_file, logging_level=logging.DEBUG)
+		logger.debug('Created Relevant Directories')
+		logger.info('Experiment Name: {}'.format(config.run_name))
+
 		voc, train_loader, val_loader, noiseless_val_loader = load_data(config, logger)
 		config.nlabels= train_loader.corpus.nlabels
-		logger.info('Vocab Created with number of words : {}'.format(voc.nwords))		
-	
-	if is_train:
+		logger.info('Vocab Created with number of words : {}'.format(voc.nwords))	
+
 		checkpoint = get_latest_checkpoint(config.model_path, logger)
 		epoch_offset= 0
 
@@ -178,50 +105,35 @@ def main():
 		train_model(model, train_loader, val_loader, noiseless_val_loader, voc,
 					device, config, logger, epoch_offset)
 
-	elif is_tune:
-		# Hyperparameter tuning happens here. 
-		hyper_config = {
-			'lr': tune.choice([1e-3,1e-4,1e-5]),
-			'd_model': tune.choice([32, 64]),
-			'depth': tune.choice([1, 2, 3]),
-			'd_ffn': tune.choice([32, 64, 128]),
-			'heads':tune.choice([2, 4])
-		}
-		#If you want to deterministically visit
-		# all possible hyperparameters, you can use tune.grid_search, e.g. the following:
-		# hyper_config = {
-		# 	'd_model': tune.grid_search([16, 32, 64, 128]),
-		# 	'depth': tune.grid_search([1, 2, 3]),
-		# }
-		# WARNING: IF YOU USE GRID SEARCH, IT WILL RUN ALL COMBINATIONS OF THE PARAMETERS
-		# `num_samples` TIMES EACH. e.g. if num_samples=60, the above will run 720 trials!
-
-		# The way raytune distributes compute resources is to use all possible resources,
-		# then maximize the number of trials such that cpus/gpus per worker below are satisfied.
-		# To avoid overutilization, set `max_concurrent_trials`
-		# https://docs.ray.io/en/latest/tune/tutorials/tune-resources.html
+	elif config.mode == "tune":
+		# these are the parameterized hyperparameters we want to tune over
+		# Comment out anything that you are not tuning over, to save redundant information
+		# from the tuning results.
+		if config.model_type == 'RNN':
+			hyper_config = {
+				'lr': np.logspace(-3,-2, num=20, base=10.0),
+				'emb_size': np.array([8, 16, 32, 64, 128]),
+				# 'dropout': [0.05],
+				'depth': np.array([3, 4, 5, 6]),
+				'cell_type': ['LSTM']
+			}
+		elif config.model_type == 'SAN':
+			hyper_config = {
+				'lr': np.logspace(-3,-2, num=20, base=10.0),
+				'depth': np.array([3, 4, 5, 6]),
+				'd_model': np.array([8, 16, 32, 64, 128]),
+				# 'dropout': [0.05],
+				'heads': np.array([2, 4, 8, 16]),
+				'd_ffn': np.array([8, 16, 32, 64, 128]),
+			}
+		
+		# these specify how tune will work
 		hyper_settings = {
-			"total_cpus": 20,
+			"total_cpus": 2,
 			"total_gpus": 0,
-			"cpus_per_worker": 6,
-			"gpus_per_worker": 0,
-			"max_concurrent_trials": 4,
-			"grace_period": 1000, # minimum epochs to give each trial
-			"max_iterations": 1000, # this is the max epochs any trial is allowed to run
-			"num_samples": 150,
+			"num_samples": 2, 
 		}
-
-		min_val_loss = torch.tensor(float('inf')).item()
-		epoch_offset= 0
-
-		logger.info('Starting Tuning Procedure')
-
-		# Overwriting the config settings with the hyperparameters
-		config.tune = True
-		for key, value in hyper_config.items():
-			setattr(config, key, value)
-
-		tune_model(hyper_settings, hyper_config, train_loader, val_loader, noiseless_val_loader, voc, config, logger, epoch_offset)
+		tuning.tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config)
 		
 
 
