@@ -1,1 +1,0 @@
-python -m main -mode tune -dataset hamilton_6_choose_4_nbits16_n2000_bf20_seed1234 -cell_type LSTM

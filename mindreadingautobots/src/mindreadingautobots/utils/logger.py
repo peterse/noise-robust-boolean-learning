@@ -7,27 +7,28 @@ import json
 import os
 
 
-def get_logger(name, log_file_path='./logs/temp.log', logging_level=logging.INFO):
-	# log_format='%(asctime)s | %(levelname)s | %(filename)s: %(lineno)s : %(funcName)s() ::\t %(message)s'
+def init_logger(name, log_file_path=None, logging_level=logging.INFO):
 	formatter= logging.Formatter('%(asctime)s | %(filename)s : %(funcName)s() ::\t %(message)s', "%m-%d %H")
 	logger = logging.getLogger(name)
 	logger.setLevel(logging_level)
 	# formatter = logging.Formatter(log_format)
 
-	file_handler = logging.FileHandler(log_file_path, mode='w')
-	file_handler.setLevel(logging_level)
-	file_handler.setFormatter(formatter)
+	if log_file_path:
+		file_handler = logging.FileHandler(log_file_path, mode='w')
+		file_handler.setLevel(logging_level)
+		file_handler.setFormatter(formatter)
+		logger.addHandler(file_handler)
 
-	stream_handler = logging.StreamHandler()
-	stream_handler.setLevel(logging_level)
-	stream_handler.setFormatter(formatter)
-
-	logger.addHandler(file_handler)
-	logger.addHandler(stream_handler)
-
-	# logger.addFilter(ContextFilter(expt_name))
+	else:
+		stream_handler = logging.StreamHandler()
+		stream_handler.setLevel(logging_level)
+		stream_handler.setFormatter(formatter)
+		logger.addHandler(stream_handler)
 
 	return logger
+
+def get_logger(name):
+	return logging.getLogger(name)
 
 
 def print_log(logger, dict):

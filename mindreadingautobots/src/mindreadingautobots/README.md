@@ -3,9 +3,30 @@
 The set of command line arguments available can be seen in the respective `args.py` file.
 
 
-#### Training a specific rnn on a specific dataset
+### Tuning directory structure
 
-From `rnn_pipeline`:
+```
+main.py
+tune_results/
+--<model1_name_dataset1_name>/ # folder dedicated to this model-dataset pair
+----run_<YYYYMMDDSSff1>/ # name of a specific run, with a choice of hyperparameters
+------tune_results.csv # Aggregated results for entire run [appears when run finishes]
+------config.json # baseline model config for every thread in this run
+------run_log.txt # logfile for this run [contains errors with job scheduling, e.g.]
+------logs/ 
+--------job_1/
+----------job_results.csv # epochwise results for a specific thread
+----------log.txt # logfile for the stdout of that specific thread
+----------hyper_config.json # hyperparameters for all threads in this run
+--------job_2/
+----run_<YYYYMMDDSSff2>/
+------tune_results.csv
+------logs/
+--<model2_name_dataset1_name>/
+--<model1_name_dataset3_name>/
+```
+
+#### Training a specific model on a specific dataset
 
 Run training for a vanilla RNN (or, switch cell_type to LSTM):
 
@@ -17,7 +38,7 @@ gpu flags the gpu number, it is not a boolean. To use CPU, omit the gpu arg enti
  - cell_type determines which kind of RNN, choices= ['LSTM', 'GRU', 'RNN_TANH', 'RNN_RELU']
  - depth (number of rnn hidden layers)
  - emb_size (embedding dimension for inputs)
- - hidden size (hidden units per layer)
+ - hidden_size (hidden units per layer)
 
 #### Doing hyperparameter tuning with a specific dataset
 

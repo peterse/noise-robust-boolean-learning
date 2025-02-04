@@ -22,7 +22,7 @@ class Corpus(object):
 		
 
 	def create_ids(self, path):
-		assert os.path.exists(path)
+		assert os.path.exists(path), 'Dataset does not exist!'
 		endsym=  's'
 		label_tensors = []
 		# df = pd.read_csv(path, sep='\t')
