@@ -88,7 +88,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 	max_val_acc = 0
 	best_epoch = 0
 	itr= 0
-	early_stopping = EarlyStopping(patience=50, delta=0.0, logger=logger)
+	early_stopping = EarlyStopping(patience=config.patience, delta=0.0, logger=logger)
 	best_results = None # dictionary of key metrics for the best epoch (by validation acc)
 	for epoch in range(1, config.epochs+1):
 
