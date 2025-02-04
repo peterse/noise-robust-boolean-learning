@@ -41,7 +41,7 @@ def build_parser():
 
 	# SHARED PARAMETERS
 	parser.add_argument('-depth', type=int, help='Number of layers (encoder and decoder layers for SAN, just depth for RNN)')
-	parser.add_argument('-dropout', type=float, default=0.05, help= 'Dropout probability for input/output/state units (0.0: no dropout)')
+	parser.add_argument('-dropout', type=float, help= 'Dropout probability for input/output/state units (0.0: no dropout)')
 
 	# RNN PARAMETERS: 
 	parser.add_argument('-cell_type', type=str, choices= ['LSTM', 'GRU', 'RNN_TANH', 'RNN_RELU'],  help='RNN cell type, default: lstm')

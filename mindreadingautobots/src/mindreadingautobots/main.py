@@ -71,6 +71,9 @@ def main():
 
 	logger = init_logger(config.run_name, log_file_path=log_file, logging_level=logging.DEBUG)
 
+	# # # # # MANUAL SETTINGS
+	config.patience = 50
+
 	if config.mode == 'train':
 		vocab_path = os.path.join(config.model_path, 'vocab.p')
 		config_file = os.path.join(config.model_path, 'config.p')
@@ -119,7 +122,7 @@ def main():
 		# from the tuning results.
 		if config.model_type == 'RNN':
 			hyper_config = {
-				'lr': np.logspace(-3,-2, num=20, base=10.0),
+				'lr': np.logspace(-4,-2, num=20, base=10.0),
 				'emb_size': np.array([16, 32, 64]),
 				'hidden_size': np.array([16, 32, 64]),
 				# 'dropout': [0.05], # dropout is default 0.05
@@ -128,22 +131,26 @@ def main():
 			}
 		elif config.model_type == 'SAN':
 			hyper_config = {
-				'lr': np.logspace(-3,-2, num=20, base=10.0),
-				'depth': np.array([3, 4, 5, 6]),
-				'd_model': np.array([8, 16, 32, 64, 128]),
-				# 'dropout': [0.05],# dropout is default 0.05
-				'heads': np.array([2, 4, 8, 16]),
-				'd_ffn': np.array([8, 16, 32, 64, 128]),
+				'lr': np.logspace(-5,-2, num=20, base=10.0),
+				'depth': np.array([1,2, 3]),
+				'd_model': np.array([32, 64]),
+				'dropout': [0.05, 0.1],# dropout is default 0.05
+				'heads': np.array([2, 4]),
+				'd_ffn': np.array([32, 64, 128]),
 			}
+			for h in hyper_config['heads']:
+				for d_model in hyper_config['d_model']:
+					if d_model % h != 0:
+						raise ValueError(f"d_model must be divisible by heads. Cannot have d_model={d_model} and heads={h}")
 
 		# Verification
 		validate_tuning_parameters(config, hyper_config, logger)
 
 		# these specify how tune will work
 		hyper_settings = {
-			"total_cpus": 2,
+			"total_cpus": 30,
 			"total_gpus": 0,
-			"num_samples": 2, 
+			"num_samples": 30, 
 		}
 		tuning.tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, logger)
 		
