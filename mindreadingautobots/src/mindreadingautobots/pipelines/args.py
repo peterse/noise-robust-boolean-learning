@@ -20,7 +20,7 @@ def build_parser():
 	parser.add_argument('-no-savei', dest='savei', action='store_false', help='Do not save models in intermediate epochs')
 	parser.set_defaults(savei=False)
 
-	parser.add_argument('-run_name', type=str, default='debug', help='run name for logs')
+	# parser.add_argument('-run_name', type=str, default='debug', help='run name for logs')
 	parser.add_argument('-dataset', type=str, default='sparity40_5k', help='Dataset')
 
 	# parser.add_argument('-itr', dest='itr', action='store_true', help='Iteratively train')
@@ -40,7 +40,7 @@ def build_parser():
 	parser.add_argument('-model_type', type=str, choices= ['RNN', 'SAN'],  help='Model Type')
 
 	# SHARED PARAMETERS
-	parser.add_argument('-depth', type=int, default=2, help='Number of layers (encoder and decoder layers for SAN, just depth for RNN)')
+	parser.add_argument('-depth', type=int, help='Number of layers (encoder and decoder layers for SAN, just depth for RNN)')
 	parser.add_argument('-dropout', type=float, default=0.05, help= 'Dropout probability for input/output/state units (0.0: no dropout)')
 
 	# RNN PARAMETERS: 

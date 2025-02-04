@@ -16,6 +16,55 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+def validate_tuning_parameters(config, hyper_config, logger):
+	RNN_HYPERS = ['cell_type', 'emb_size', 'hidden_size', 'depth', 'dropout']
+	SAN_HYPERS = ['d_model', 'd_ffn', 'heads', 'depth', 'dropout']
+	error = 0
+	err_out = ""
+	if config.model_type == 'RNN':
+		for k in RNN_HYPERS:
+			if getattr(config, k, None) is not None and hyper_config.get(k) is not None:
+				err_str = "Hyperparameter {} is specified in commandline inputs and `hyper_config`".format(k)
+				err_out += err_str + "\n"
+				logger.error(err_str)
+				error = 1
+		for k in SAN_HYPERS:
+			if getattr(hyper_config, k, None) is not None:
+				err_str = "Hyperparameter {} for SAN specified in `hyper_config`, but `model_type` is RNN".format(k)
+				err_out += err_str + "\n"
+				logger.error(err_str)
+				error = 1
+		for k in RNN_HYPERS:
+			if getattr(config, k, None) is None and hyper_config.get(k) is None:
+				err_str = "Hyperparameter {} is not specified in commandline inputs or `hyper_config`".format(k)
+				err_out += err_str + "\n"
+				logger.error(err_str)
+				error = 1
+	elif config.model_type == 'SAN':
+		for k in SAN_HYPERS:
+			if getattr(config, k, None) is not None and hyper_config.get(k) is not None:
+				err_str = "Hyperparameter {} is specified in commandline inputs and `hyper_config`".format(k)
+				err_out += err_str + "\n"
+				logger.error(err_str)
+				error = 1
+		for k in RNN_HYPERS:
+			if getattr(hyper_config, k, None) is not None:
+				err_str = "Hyperparameter {} for RNN specified in `hyper_config`, but `model_type` is SAN".format(k)
+				err_out += err_str + "\n"
+				logger.error(err_str)
+				error = 1
+		for k in SAN_HYPERS:
+			if getattr(config, k, None) is None and hyper_config.get(k) is None:
+				err_str = "Hyperparameter {} is not specified in commandline inputs or `hyper_config`".format(k)
+				err_out += err_str + "\n"
+				logger.error(err_str)
+				error = 1
+	if error:
+		raise ValueError("Hyperparameters are specified in both commandline and hyperparameters:\n{}".format(err_out))
+	logger.debug("Hyperparameters validated")
+
+
+
 def gpu_init_pytorch(gpu_num):
 	'''
 		Initialize device

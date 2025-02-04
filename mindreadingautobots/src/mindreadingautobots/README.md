@@ -14,11 +14,11 @@ tune_results/
 ------config.json # baseline model config for every thread in this run
 ------run_log.txt # logfile for this run [contains errors with job scheduling, e.g.]
 ------logs/ 
---------thread_1/
-----------thread_results.csv # epochwise results for a specific thread
+--------job_1/
+----------job_results.csv # epochwise results for a specific thread
 ----------log.txt # logfile for the stdout of that specific thread
 ----------hyper_config.json # hyperparameters for all threads in this run
---------thread_2/
+--------job_2/
 ----run_<YYYYMMDDSSff2>/
 ------tune_results.csv
 ------logs/

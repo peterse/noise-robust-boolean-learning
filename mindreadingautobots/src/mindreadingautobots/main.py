@@ -4,6 +4,7 @@ import logging
 import pdb
 import random
 import numpy as np
+import datetime
 # from attrdict import AttrDict
 import torch
 from torch.utils.data import DataLoader
@@ -18,7 +19,7 @@ from mindreadingautobots.pipelines.training import train_model, load_data, build
 from mindreadingautobots.pipelines import tuning
 
 
-from mindreadingautobots.utils.helper import Voc, gpu_init_pytorch, create_save_directories, get_latest_checkpoint, count_parameters
+from mindreadingautobots.utils.helper import Voc, gpu_init_pytorch, create_save_directories, get_latest_checkpoint, count_parameters, validate_tuning_parameters
 from mindreadingautobots.utils.logger import init_logger
 
 from mindreadingautobots.pipelines.args import build_parser
@@ -51,20 +52,28 @@ def main():
 		device = torch.device('cpu')
 
 	'''Run Config files/paths'''
-	log_folder = 'train_results/logs'
 	model_folder = 'train_results/models'
 	result_folder = '/out/'
 	data_path = 'data/'
-	run_name = config.run_name
 
-	config.data_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', data_path))
-	config.log_path = os.path.join(log_folder, run_name)
-	config.model_path = os.path.join(model_folder, config.dataset, run_name)
+	config.run_name = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+	config.model_path = os.path.join(model_folder, config.dataset, config.run_name)
 	config.abs_path = os.path.dirname(os.path.abspath(__file__)) # current file's path
+	config.data_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', data_path))
+
+	# use a timestamp YYYYMMDDHHMMSS to identify the run
+	if config.mode == 'train':
+		config.log_path = 'train_results/'
+		log_file = os.path.join(config.log_path, f'{config.run_name}.txt')
+	elif config.mode == 'tune':
+		config.tune_directory = tuning.make_tune_directory(config, config.abs_path) # makes tune_results/{model}_{dataset}/run_{timestamp}
+		log_file = os.path.join(config.tune_directory, 'log.txt')
+
+	logger = init_logger(config.run_name, log_file_path=log_file, logging_level=logging.DEBUG)
 
 	if config.mode == 'train':
 		vocab_path = os.path.join(config.model_path, 'vocab.p')
-		config_file = os.path.join(config.heads, 'config.p')
+		config_file = os.path.join(config.model_path, 'config.p')
 		log_file = os.path.join(config.log_path, 'log.txt')
 
 		if config.results:
@@ -75,7 +84,6 @@ def main():
 		else:
 			create_save_directories(config.log_path, None, result_folder)
 		
-		logger = init_logger(run_name, log_file_path=log_file, logging_level=logging.DEBUG)
 		logger.debug('Created Relevant Directories')
 		logger.info('Experiment Name: {}'.format(config.run_name))
 
@@ -112,8 +120,9 @@ def main():
 		if config.model_type == 'RNN':
 			hyper_config = {
 				'lr': np.logspace(-3,-2, num=20, base=10.0),
-				'emb_size': np.array([8, 16, 32, 64, 128]),
-				# 'dropout': [0.05],
+				'emb_size': np.array([16, 32, 64]),
+				'hidden_size': np.array([16, 32, 64]),
+				# 'dropout': [0.05], # dropout is default 0.05
 				'depth': np.array([3, 4, 5, 6]),
 				'cell_type': ['LSTM']
 			}
@@ -122,18 +131,21 @@ def main():
 				'lr': np.logspace(-3,-2, num=20, base=10.0),
 				'depth': np.array([3, 4, 5, 6]),
 				'd_model': np.array([8, 16, 32, 64, 128]),
-				# 'dropout': [0.05],
+				# 'dropout': [0.05],# dropout is default 0.05
 				'heads': np.array([2, 4, 8, 16]),
 				'd_ffn': np.array([8, 16, 32, 64, 128]),
 			}
-		
+
+		# Verification
+		validate_tuning_parameters(config, hyper_config, logger)
+
 		# these specify how tune will work
 		hyper_settings = {
 			"total_cpus": 2,
 			"total_gpus": 0,
 			"num_samples": 2, 
 		}
-		tuning.tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config)
+		tuning.tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, logger)
 		
 
 

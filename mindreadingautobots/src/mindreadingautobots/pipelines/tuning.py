@@ -26,15 +26,14 @@ class ThreadManager:
 
 	We will write to `tune_directory`, which is a directory that is unique to this thread
 	(timestamp for uniqueness). This directory will be populated with:
-	- a CSV file for the results of each epoch: tune_results_{thread_id}.csv
-	- a JSON file for the model config: config_{thread_id}.json
+	- a CSV file for the results of each epoch: job_results.csv
 	- a JSON file for the hyperparameters: hyper_config_{thread_id}.json
 	"""
 	def __init__(self, thread_info):
 		self.thread_id = thread_info.get("thread_id")
-		self.tune_path = thread_info.get("tune_path")  # tune_results/{model}_{dataset}/run_{timestamp}/threads/thread_<thread_id>/
+		self.tune_path = thread_info.get("tune_path")  # tune_results/{model}_{dataset}/run_{timestamp}/threads/job_<thread_id>/
 		self.logger_name = thread_info.get("logger_name")
-		self.tune_results_path = os.path.join(self.tune_path, f"thread_results.csv")
+		self.tune_results_path = os.path.join(self.tune_path, f"job_results.csv")
 		self.log_path = os.path.join(self.tune_path, f"log.txt")
 
 		# initialize logging
@@ -108,13 +107,13 @@ def train_model_multiprocessing(package):
 
 
 
-def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config):
+def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, logger):
 	"""
 	hyper_config should contain a sequence-type for each hyperparameter in the search, e.g.
 	hyper_config = {
 		'lr': np.loguniform(1e-4, 1e-2),
-		'hidden_dim': [8, 16, 32, 64],
-		'n_layers': [1, 2, 3, 4],
+		'emb_size': [8, 16, 32, 64],
+		'depth': [1, 2, 3, 4],
 }
 	"""
 	num_cpus=hyper_settings.get("total_cpus")
@@ -124,8 +123,8 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config):
 
 	# Number of CPUs to use
 	tot_cpus = mp.cpu_count()  # Get the number of available CPUs
-	print(f"Number of available CPUs: {tot_cpus}")
-	print(f"Number of CPUs to use: {num_cpus}")
+	logger.debug(f"Number of available CPUs: {tot_cpus}")
+	logger.debug(f"Number of CPUs to use: {num_cpus}")
 
 	# build the hyperparameter space by sampling (gridsearch not yet supported)
 	# Each element of this list is a dictionary of hyperparameters with the same 
@@ -138,13 +137,14 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config):
 		hyper_list.append(hyperparameter_slice)
 
 	# Assemble local variables to be called from within a thread
-	tune_directory = make_tune_directory(config, config.abs_path) # makes tune_results/{model}_{dataset}/run_{timestamp}
+	tune_directory = config.tune_directory
 	threads_directory = os.path.join(tune_directory, "threads")
 	package_list = []
 	paths_list = []
 	for thread_id, hyperparameter_slice in enumerate(hyper_list):
 		# Configure tuning path for this specific thread
-		tune_path = os.path.join(threads_directory, "threads/", f"thread_{thread_id}") # where this thread's results live: .../threads/thread_<thread_id>
+		# note that the thread id does not belong to a specific thread, but rather to a job
+		tune_path = os.path.join(threads_directory, "threads/", f"job_{thread_id}") # where this thread's results live: .../threads/job_<thread_id>
 		os.makedirs(tune_path)
 		paths_list.append(tune_path)
 		logger_name = f"thread_{thread_id}" # we cannot serialize a logger effectively, so we pass around its name
@@ -157,6 +157,7 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config):
 		all_results = pool.map(train_model_multiprocessing, package_list)
 	
 	#cleanup
+	logger.debug("Cleaning up...")
 	hyper_keys = list(hyper_config.keys())
 	header_keys = get_header().split(",")
 	columns = header_keys + hyper_keys
@@ -170,8 +171,8 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config):
 
 	config_dict = {k: v for k, v in vars(config).items() if not k.startswith("__")}
 	for k in hyper_keys:
-		print(k)
 		config_dict[k] = None
-		print(config_dict[k])
 	with open(os.path.join(tune_directory, f"config.json"), "w") as f:
 		f.write(json.dumps(config_dict))
+
+	logger.debug("Tuning run completed successfully...")
