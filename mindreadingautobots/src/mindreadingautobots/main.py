@@ -128,12 +128,12 @@ def main():
 			}
 		elif config.model_type == 'SAN':
 			hyper_config = {
-				'lr': np.logspace(-3,-2, num=20, base=10.0),
-				'depth': np.array([3, 4, 5, 6]),
-				'd_model': np.array([8, 16, 32, 64, 128]),
+				'lr': np.logspace(-5,-2, num=20, base=10.0),
+				'depth': np.array([1,2, 3]),
+				'd_model': np.array([32, 64]),
 				# 'dropout': [0.05],# dropout is default 0.05
-				'heads': np.array([2, 4, 8, 16]),
-				'd_ffn': np.array([8, 16, 32, 64, 128]),
+				'heads': np.array([2, 4]),
+				'd_ffn': np.array([32, 64, 128]),
 			}
 
 		# Verification
