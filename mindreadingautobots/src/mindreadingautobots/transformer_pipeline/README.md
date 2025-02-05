@@ -29,11 +29,7 @@ To tune hyperparameters for an xformer do the following:
  - in `main.py`: modify `hyper_config` with the sweep hyperparameters. ANYTHING HARDCODED IN `main.py` WILL OVERWRITE COMMANDLINE
 
 ```shell
-<<<<<<< HEAD
-$	python -m main -mode tune -dataset sparse_parity_k4_nbits10_n5000_bf0_seed1234  \
-=======
 $	python -m main -mode tune -dataset hamilton_6_choose_4_nbits16_n2000_bf20_seed1234  \
->>>>>>> e8b97bc166dd0fd6f535c41241e4b8e04601ffc8
 -model_type SAN 
 ```
  _if I have a d_ffn kwarg in `hyper_config`, the above "32" will be ignored!!

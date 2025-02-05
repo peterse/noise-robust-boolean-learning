@@ -161,6 +161,7 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, l
 	hyper_keys = list(hyper_config.keys())
 	header_keys = get_header().split(",")
 	columns = header_keys + hyper_keys
+	# columns = hyper_keys + header_keys
 	data = []
 	for i in range(len(all_results)):
 		hyper_setting = [hyper_list[i].get(k) for k in hyper_keys]

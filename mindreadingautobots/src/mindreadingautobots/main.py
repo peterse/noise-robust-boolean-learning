@@ -24,12 +24,20 @@ from mindreadingautobots.utils.logger import init_logger
 
 from mindreadingautobots.pipelines.args import build_parser
 
+import yaml 
+
 
 global log_folder
 global model_folder
 global result_folder
 global data_path
 
+
+
+def load_hyperparameters(config_path):
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
 
 
 def main():
@@ -119,38 +127,50 @@ def main():
 	elif config.mode == "tune":
 		# these are the parameterized hyperparameters we want to tune over
 		# Comment out anything that you are not tuning over, to save redundant information
-		# from the tuning results.
-		if config.model_type == 'RNN':
-			hyper_config = {
-				'lr': np.logspace(-4,-2, num=20, base=10.0),
-				'emb_size': np.array([16, 32, 64]),
-				'hidden_size': np.array([16, 32, 64]),
-				# 'dropout': [0.05], # dropout is default 0.05
-				'depth': np.array([3, 4, 5, 6]),
-				'cell_type': ['LSTM']
-			}
-		elif config.model_type == 'SAN':
-			hyper_config = {
-				'lr': np.logspace(-5,-2, num=20, base=10.0),
-				'depth': np.array([1,2, 3]),
-				'd_model': np.array([32, 64]),
-				'dropout': [0.05, 0.1],# dropout is default 0.05
-				'heads': np.array([2, 4]),
-				'd_ffn': np.array([32, 64, 128]),
-			}
+		# from the tuning results.  
+
+		yaml = load_hyperparameters(config.hyper_config_path)
+		model_type = config.model_type 
+		model_type_from_yaml = yaml["model_type"] 
+
+		if model_type != model_type_from_yaml:
+			raise ValueError(f"Model type {model_type} from args is different from model type {model_type_from_yaml} in hyperparameter config file")
+		hyper_config = yaml["hyperparameters"]
+		
+		# if config.model_type == 'RNN':
+		# 	hyper_config = {
+		# 		'lr': np.logspace(-4,-2, num=20, base=10.0),
+		# 		'emb_size': np.array([16, 32, 64]),
+		# 		'hidden_size': np.array([16, 32, 64]),
+		# 		'dropout': [0.05], # dropout is default 0.05
+		# 		'depth': np.array([1,2,3, 4, 5, 6]),
+		# 		'cell_type': ['LSTM']
+		# 	}
+		# elif config.model_type == 'SAN':
+		# 	hyper_config = {
+		# 		'lr': np.logspace(-5,-2, num=20, base=10.0),
+		# 		'depth': np.array([1,2, 3]),
+		# 		'd_model': np.array([32, 64]),
+		# 		'dropout': [0.05, 0.1],# dropout is default 0.05
+		# 		'heads': np.array([2, 4]),
+		# 		'd_ffn': np.array([32, 64, 128]),
+		# 	}
+		if model_type == 'SAN':
 			for h in hyper_config['heads']:
 				for d_model in hyper_config['d_model']:
 					if d_model % h != 0:
 						raise ValueError(f"d_model must be divisible by heads. Cannot have d_model={d_model} and heads={h}")
-
+		
+		print('Hyperparameters to tune over: ', hyper_config)
+		print('Model Type: ', model_type)	
 		# Verification
 		validate_tuning_parameters(config, hyper_config, logger)
 
 		# these specify how tune will work
 		hyper_settings = {
-			"total_cpus": 30,
+			"total_cpus": 160, 
 			"total_gpus": 0,
-			"num_samples": 30, 
+			"num_samples": 300, 
 		}
 		tuning.tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, logger)
 		

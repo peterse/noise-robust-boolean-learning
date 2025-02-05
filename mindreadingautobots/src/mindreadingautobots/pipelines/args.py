@@ -77,7 +77,11 @@ def build_parser():
 
 	# Wandb
 	parser.add_argument('-project', type=str, default='Bool', help='wandb project name')
-	parser.add_argument('-entity', type=str, default='your_entity', help='wandb entity name')
+	parser.add_argument('-entity', type=str, default='your_entity', help='wandb entity name') 
+
+	# YAML configuration 
+	parser.add_argument('-hyper_config_path', type=str, help='Path to hyperparameter configuration yaml file', default='mindreadingautobots/hyper_config/hyper_config.yaml',
+										 required=True)
 
 
 	return parser
