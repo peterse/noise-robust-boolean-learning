@@ -167,7 +167,7 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, l
 		best_result = [all_results[i].get(k) for k in header_keys]
 		data.append(best_result + hyper_setting)
 	df = pd.DataFrame(data, columns=columns)
-	df.to_csv(os.path.join(tune_directory, f"{config.model}_{config.dataset}_results.csv"), index=False)
+	df.to_csv(os.path.join(tune_directory, f"{config.model_type}_{config.dataset}_results.csv"), index=False)
 
 	config_dict = {k: v for k, v in vars(config).items() if not k.startswith("__")}
 	for k in hyper_keys:
