@@ -138,13 +138,13 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, l
 
 	# Assemble local variables to be called from within a thread
 	tune_directory = config.tune_directory
-	threads_directory = os.path.join(tune_directory, "threads")
+	threads_directory = os.path.join(tune_directory, "threads/")
 	package_list = []
 	paths_list = []
 	for thread_id, hyperparameter_slice in enumerate(hyper_list):
 		# Configure tuning path for this specific thread
 		# note that the thread id does not belong to a specific thread, but rather to a job
-		tune_path = os.path.join(threads_directory, "threads/", f"job_{thread_id}") # where this thread's results live: .../threads/job_<thread_id>
+		tune_path = os.path.join(threads_directory, f"job_{thread_id}") # where this thread's results live: .../threads/job_<thread_id>
 		os.makedirs(tune_path)
 		paths_list.append(tune_path)
 		logger_name = f"thread_{thread_id}" # we cannot serialize a logger effectively, so we pass around its name
