@@ -80,7 +80,7 @@ def main():
 	logger = init_logger(config.run_name, log_file_path=log_file, logging_level=logging.DEBUG)
 
 	# # # # # MANUAL SETTINGS
-	config.patience = 50
+	config.patience = 300
 
 	if config.mode == 'train':
 		vocab_path = os.path.join(config.model_path, 'vocab.p')
