@@ -89,12 +89,14 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 	best_epoch = 0
 	itr= 0
 	early_stopping = EarlyStopping(patience=config.patience, delta=0.0, logger=logger)
-	best_results = None # dictionary of key metrics for the best epoch (by validation acc)
+	best_results = {} # dictionary of key metrics for the best epoch (by validation acc)
 	for epoch in range(1, config.epochs+1):
 
 		train_loss_epoch = 0.0
 		train_acc_epoch = 0.0
-		val_acc_epoch = 0.0
+		val_acc_epoch = 0.0 
+		final_val_acc_epoch = 0.0
+		final_train_acc_epoch = 0.0 
 		model.train()
 		start_time = time()
 		lr_epoch =  model.optimizer.state_dict()['param_groups'][0]['lr']
@@ -118,13 +120,16 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		log_print('Starting Validation')
 
 		val_acc_epoch = run_validation(config, model, val_loader, voc, device, logger)
-		train_acc_epoch = run_validation(config, model, train_loader, voc, device, logger)
+		train_acc_epoch = run_validation(config, model, train_loader, voc, device, logger) 
+		final_val_acc_epoch = val_acc_epoch
+		final_train_acc_epoch = train_acc_epoch
 
 		# If noiseless validation is not enabled, the model will report '0'
-		noiseless_val_acc_epoch = 0
+		noiseless_val_acc_epoch = 0 
+		final_noiseless_val_acc = 0
 		if config.noiseless_validation is not None:
 			noiseless_val_acc_epoch = run_validation(config, model, noiseless_val_loader, voc, device, logger)
-
+			final_noiseless_val_acc = noiseless_val_acc_epoch
 		epoch_results = {
 				"epoch": epoch,
 				"train_loss": train_loss_epoch,
@@ -148,6 +153,11 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 			curr_train_acc= train_acc_epoch
 			best_results = copy.deepcopy(epoch_results)
 
+		# save the final accuracy score as well 
+		best_results['final_val_acc'] = final_val_acc_epoch
+		best_results['final_train_acc'] = final_train_acc_epoch
+		best_results['final_noiseless_val_acc'] = final_noiseless_val_acc
+		
 		# Break if we haven't had consistent progress 
 		if early_stopping.early_stop:
 			break
@@ -160,6 +170,9 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		od['noiseless_val_acc_epoch'] = noiseless_val_acc_epoch
 		od['max_val_acc']= max_val_acc
 		od['lr_epoch'] = lr_epoch
+		od['final_val_acc_epoch'] = final_val_acc_epoch
+		od['final_train_acc_epoch'] = final_train_acc_epoch
+		od['final_noiseless_val_acc'] = final_noiseless_val_acc
 		print_log(logger, od)
 
 	logger.info('Training Completed for {} epochs'.format(epoch))
@@ -167,7 +180,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		# These results are redundant with the tuning directory structure
 		store_results(config, max_val_acc, curr_train_acc, best_epoch, noiseless_val_acc_epoch)
 		logger.info('Scores saved at {}'.format(config.result_path))
-	
+
 	return best_results
 		
 
