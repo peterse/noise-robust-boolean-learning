@@ -35,9 +35,9 @@ global data_path
 
 
 def load_hyperparameters(config_path):
-    with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
-    return config
+	with open(config_path, 'r') as file:
+			config = yaml.safe_load(file)
+	return config
 
 
 def main():
@@ -129,12 +129,16 @@ def main():
 		# Comment out anything that you are not tuning over, to save redundant information
 		# from the tuning results.  
 
-		yaml = load_hyperparameters(config.hyper_config_path)
+		yaml = load_hyperparameters(config.hyper_config_path) 
+		if "model_type" not in yaml or "hyperparameters" not in yaml or "total_cpus" not in yaml or "total_gpus" not in yaml or "num_samples" not in yaml:
+			raise ValueError("Hyperparameter config file must have model_type, hyperparameters, total_cpus, total_gpus, and num_samples fields")
 		model_type = config.model_type 
 		model_type_from_yaml = yaml["model_type"] 
 
 		if model_type != model_type_from_yaml:
-			raise ValueError(f"Model type {model_type} from args is different from model type {model_type_from_yaml} in hyperparameter config file")
+			raise ValueError(f"Model type {model_type} from args is different from model type {model_type_from_yaml} in hyperparameter config file") 
+		
+
 		hyper_config = yaml["hyperparameters"]
 		
 		# if config.model_type == 'RNN':
@@ -168,9 +172,9 @@ def main():
 
 		# these specify how tune will work
 		hyper_settings = {
-			"total_cpus": 160, 
-			"total_gpus": 0,
-			"num_samples": 300, 
+			"total_cpus": yaml["total_cpus"],
+			"total_gpus": yaml["total_gpus"],
+			"num_samples": yaml["num_samples"],
 		}
 		tuning.tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, logger)
 		

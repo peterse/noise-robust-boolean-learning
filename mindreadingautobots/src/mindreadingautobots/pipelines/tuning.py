@@ -17,7 +17,7 @@ def hyper_config_path(path):
     return os.path.join(path, f"hyper_config.json")
 
 def get_header():
-    return "epoch,train_loss,train_acc,val_acc,noiseless_val_acc"
+    return "epoch,train_loss,train_acc,val_acc,noiseless_val_acc,final_train_acc,final_val_acc,final_noiseless_val_acc"
 
 
 class ThreadManager:
@@ -155,7 +155,7 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, l
 	with mp.Pool(processes=num_cpus) as pool:
 		# Map f to the list of parameters
 		all_results = pool.map(train_model_multiprocessing, package_list)
-	
+  
 	#cleanup
 	logger.debug("Cleaning up...")
 	hyper_keys = list(hyper_config.keys())
