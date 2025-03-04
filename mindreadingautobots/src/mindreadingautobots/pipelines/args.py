@@ -82,6 +82,8 @@ def build_parser():
 	# YAML configuration 
 	parser.add_argument('-hyper_config_path', type=str, help='Path to hyperparameter configuration yaml file', default='mindreadingautobots/hyper_config/hyper_config.yaml',
 										 required=True)
-
+  
+	# Do you want sensitivity to be computed ? 
+	parser.add_argument('-sensitivity', type=bool, default=False, help='if true, the sensitivity will be reported every epoch, and will be saved in the output')
 
 	return parser

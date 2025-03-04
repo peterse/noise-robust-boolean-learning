@@ -79,6 +79,12 @@ class TransformerWrapper(nn.Module):
 		acc= np.array(preds==labels, np.int32).sum() / len(targets)
 
 		return acc
+	
+	def predict(self, source, lengths, config, device=None, hidden=None):
+		output = self.model(source, lengths)
+		preds = output.cpu().numpy()
+		preds = preds.argmax(axis=1)
+		return preds
 		
 
 

@@ -17,7 +17,7 @@ def hyper_config_path(path):
     return os.path.join(path, f"hyper_config.json")
 
 def get_header():
-    return "epoch,train_loss,train_acc,val_acc,noiseless_val_acc,final_train_acc,final_val_acc,final_noiseless_val_acc"
+    return "epoch,train_loss,train_acc,val_acc,noiseless_val_acc,final_train_acc,final_val_acc,final_noiseless_val_acc,sensitivity"
 
 
 class ThreadManager:
@@ -96,9 +96,9 @@ def train_model_multiprocessing(package):
 	for k, v in hyper_config.items():
 		setattr(config, k, v)
 
-	voc, train_loader, val_loader, noiseless_val_loader = load_data(config, manager.logger)
+	voc, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader = load_data(config, manager.logger)
 	model = build_model(config=config, voc=voc, device=device, logger=manager.logger)
-	best_results = train_model(model, train_loader, val_loader, noiseless_val_loader, voc,
+	best_results = train_model(model, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader, voc,
 					device, config, manager.logger, 0, manager=manager)
 	
 	# wrap-up operations: save config as json, save hyper_config as json
@@ -161,7 +161,7 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, l
 	hyper_keys = list(hyper_config.keys())
 	header_keys = get_header().split(",")
 	columns = header_keys + hyper_keys
-	# columns = hyper_keys + header_keys
+
 	data = []
 	for i in range(len(all_results)):
 		hyper_setting = [hyper_list[i].get(k) for k in hyper_keys]
@@ -171,7 +171,7 @@ def tune_hyperparameters_multiprocessing(hyper_config, hyper_settings, config, l
 	df.to_csv(os.path.join(tune_directory, f"{config.model_type}_{config.dataset}_results.csv"), index=False)
 
 	config_dict = {k: v for k, v in vars(config).items() if not k.startswith("__")}
-	for k in hyper_keys:
+	for k in hyper_keys:                                                                                     
 		config_dict[k] = None
 	with open(os.path.join(tune_directory, f"config.json"), "w") as f:
 		f.write(json.dumps(config_dict))

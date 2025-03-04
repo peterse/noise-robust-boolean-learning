@@ -46,6 +46,7 @@ def load_data(config, logger):
 		train_path = os.path.join(data_path, config.dataset, 'train.pkl')
 		val_path = os.path.join(data_path, config.dataset, 'val.pkl')
 		noiseless_val_path = os.path.join(data_path, config.dataset, 'noiseless_val.pkl')
+		noiseless_train_path = os.path.join(data_path, config.dataset, 'noiseless_train.pkl')
 		# test_path = os.path.join(data_path, config.dataset, 'test.tsv')
 		voc= Voc()
 		voc.create_vocab_dict(config, path= train_path, debug = config.debug)
@@ -60,18 +61,18 @@ def load_data(config, logger):
 		val_loader = Sampler(val_corpus, voc, config.batch_size)
 
 		noiseless_val_corpus = Corpus(noiseless_val_path, voc, debug = config.debug)
-		noiseless_val_loader = Sampler(noiseless_val_corpus, voc, config.batch_size)
+		noiseless_val_loader = Sampler(noiseless_val_corpus, voc, config.batch_size) 
 
 		msg = 'Training and Validation Data Loaded:\nTrain Size: {}\nVal Size: {}'.format(len(train_corpus.data), len(val_corpus.data))
 		logger.info(msg)
 		
-		return voc, train_loader, val_loader, noiseless_val_loader
+		return voc, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader
 	else:
 		logger.critical('Invalid Mode Specified')
 		raise Exception('{} is not a valid mode'.format(config.mode))
 	
 
-def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, device, 
+def train_model(model, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader, voc, device, 
 				config, logger, epoch_offset=0, manager=None):
 	"""Train a model on the given dataset and validate it on the validation set.
 	
@@ -87,6 +88,10 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 
 	max_val_acc = 0
 	best_epoch = 0
+	
+	# compute the sensitivity of the model whenever the validation accuracy improves
+	# since checking all 2^n inputs is infeasible, we check on noiseless training data
+	sensitivity = 0 
 	itr= 0
 	early_stopping = EarlyStopping(patience=config.patience, delta=0.0, logger=logger)
 	best_results = {} # dictionary of key metrics for the best epoch (by validation acc)
@@ -136,6 +141,7 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 				"train_acc": train_acc_epoch,
 				"noiseless_val_acc": noiseless_val_acc_epoch,
 				"val_acc": val_acc_epoch,
+				# "sensitivity": sensitivity,
 			}
 
 		# Early stopping is based on _loss_, so we negate the accuracy
@@ -147,11 +153,15 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		if config.mode == 'tune':
 			manager.report(epoch_results)
 		
-		if val_acc_epoch > max_val_acc :
+		if val_acc_epoch > max_val_acc:
 			max_val_acc = val_acc_epoch
 			best_epoch = epoch
 			curr_train_acc= train_acc_epoch
-			best_results = copy.deepcopy(epoch_results)
+			 # Compute sensitivity when we have a new best validation accuracy
+			if config.sensitivity:
+				sensitivity = compute_sensitivity(model, noiseless_val_loader, config, device)
+				epoch_results['sensitivity'] = sensitivity
+			best_results = copy.deepcopy(epoch_results) 
 
 		# save the final accuracy score as well 
 		best_results['final_val_acc'] = final_val_acc_epoch
@@ -173,16 +183,67 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 		od['final_val_acc_epoch'] = final_val_acc_epoch
 		od['final_train_acc_epoch'] = final_train_acc_epoch
 		od['final_noiseless_val_acc'] = final_noiseless_val_acc
+		od['sensitivity'] = sensitivity
 		print_log(logger, od)
 
 	logger.info('Training Completed for {} epochs'.format(epoch))
 	if config.results and config.mode == 'train':
 		# These results are redundant with the tuning directory structure
-		store_results(config, max_val_acc, curr_train_acc, best_epoch, noiseless_val_acc_epoch)
+		store_results(config, max_val_acc, curr_train_acc, best_epoch, noiseless_val_acc_epoch, sensitivity)
 		logger.info('Scores saved at {}'.format(config.result_path))
 
 	return best_results
-		
+	
+
+def compute_sensitivity(model, data_loader, config, device):
+	"""
+	Compute the sensitivity of the model to input bit flips.
+	For each input bit string, flip each bit and see if the output bit changes.
+	Sensitivity is the fraction of bit flips that cause the output bit to change.
+	"""
+	model.eval()
+	sensitivity = None
+	# total_flips_causing_change = 0
+	# total_bits_checked = 0
+
+	with torch.no_grad():
+		for i in range(0, len(data_loader), data_loader.batch_size):
+			batch_size = min(data_loader.batch_size, len(data_loader) - i)
+			
+			source, targets, word_lens = data_loader.get_batch(i)
+			# source = source[:batch_size]
+			# word_lens = word_lens[:batch_size]
+			
+			source, word_lens = source.to(device), word_lens.to(device)
+			# print("source, ", source)
+			# Get original output bits
+			original_outputs = model.predict(source, word_lens, config)
+			# For each input in batch
+			# for idx in range(batch_size):
+
+			# input_len = word_lens[idx].item()
+			input_len = source.size(0)
+			# For each bit in the input string
+			for pos in range(input_len):
+				modified_source = source.clone()
+
+				# modified_source[pos, idx] = 1 - modified_source[pos, idx]  # flip bit
+				modified_source[pos] = 1 - modified_source[pos]  # flip the same position of all the inputs in the batch
+				# Get output bit after flipping input bit
+				modified_outputs = model.predict(modified_source, word_lens, config)
+				
+				# Compare output bits (not entire strings)
+				# if modified_outputs[pos, idx] != original_outputs[pos, idx]: ???? 
+				# print("original outputs:", original_outputs)
+				# print("modified outputs:", modified_outputs)
+
+				# How many outputs changed in this batch: 
+				num_flipped_output = (modified_outputs != original_outputs).sum().item()
+				sensitivity += num_flipped_output
+
+  # confirm this is the average sensitivity...
+	return (sensitivity / len(data_loader)) / input_len
+
 
 def run_validation(config, model, data_loader, voc, device, logger):
 	"""
