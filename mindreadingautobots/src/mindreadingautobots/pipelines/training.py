@@ -66,13 +66,13 @@ def load_data(config, logger):
 		msg = 'Training and Validation Data Loaded:\nTrain Size: {}\nVal Size: {}'.format(len(train_corpus.data), len(val_corpus.data))
 		logger.info(msg)
 		
-		return voc, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader
+		return voc, train_loader, val_loader, noiseless_val_loader
 	else:
 		logger.critical('Invalid Mode Specified')
 		raise Exception('{} is not a valid mode'.format(config.mode))
 	
 
-def train_model(model, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader, voc, device, 
+def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, device, 
 				config, logger, epoch_offset=0, manager=None):
 	"""Train a model on the given dataset and validate it on the validation set.
 	
@@ -202,7 +202,7 @@ def compute_sensitivity(model, data_loader, config, device):
 	Sensitivity is the fraction of bit flips that cause the output bit to change.
 	"""
 	model.eval()
-	sensitivity = None
+	sensitivity = 0
 	# total_flips_causing_change = 0
 	# total_bits_checked = 0
 
@@ -242,7 +242,7 @@ def compute_sensitivity(model, data_loader, config, device):
 				sensitivity += num_flipped_output
 
   # confirm this is the average sensitivity...
-	return (sensitivity / len(data_loader)) / input_len
+	return (sensitivity / len(data_loader)) 
 
 
 def run_validation(config, model, data_loader, voc, device, logger):

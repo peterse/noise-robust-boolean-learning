@@ -96,9 +96,9 @@ def train_model_multiprocessing(package):
 	for k, v in hyper_config.items():
 		setattr(config, k, v)
 
-	voc, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader = load_data(config, manager.logger)
+	voc, train_loader, val_loader, noiseless_val_loader = load_data(config, manager.logger)
 	model = build_model(config=config, voc=voc, device=device, logger=manager.logger)
-	best_results = train_model(model, train_loader, val_loader, noiseless_val_loader, noiseless_train_loader, voc,
+	best_results = train_model(model, train_loader, val_loader, noiseless_val_loader, voc,
 					device, config, manager.logger, 0, manager=manager)
 	
 	# wrap-up operations: save config as json, save hyper_config as json
