@@ -143,7 +143,7 @@ def main():
 		
 		# if config.model_type == 'RNN':
 		# 	hyper_config = {
-		# 		'lr': np.logspace(-4,-2, num=20, base=10.0),
+		# 		'lr': np.logspace(-4,-2, num=30, base=10.0),
 		# 		'emb_size': np.array([16, 32, 64]),
 		# 		'hidden_size': np.array([16, 32, 64]),
 		# 		'dropout': [0.05], # dropout is default 0.05

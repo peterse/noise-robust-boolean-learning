@@ -39,7 +39,7 @@ def print_log(logger, dict):
 	logger.info(string)
 
 
-def store_results(config, val_score, train_acc, best_epoch, noiseless_val_acc_epoch):
+def store_results(config, val_score, train_acc, best_epoch, noiseless_val_acc_epoch, sensitivity):
 	# Ensure the directory exists
 	os.makedirs(os.path.dirname(config.result_path), exist_ok=True)
 	
@@ -53,7 +53,8 @@ def store_results(config, val_score, train_acc, best_epoch, noiseless_val_acc_ep
 		'run_name': config.run_name,
 		'val_score': val_score,
 		"noiseless_val_acc_epoch": noiseless_val_acc_epoch,
-		'train_acc': train_acc,
+		'train_acc': train_acc, 
+		'sensitivity': sensitivity,
 		'best_epoch': best_epoch,
 		'dataset': config.dataset,
 		'depth': config.depth,
