@@ -333,3 +333,38 @@ def sparse_majority_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=Non
         Z = np.logical_xor(X, flips).astype(int)
 
     return X, Z, subseq_idx
+
+
+def sparse_boolean_weightbased_k_n(n_bits, k, n_data, signature, p_bitflip=0.0, seed=0, subseq_idx=None):
+    """Generate a dataset where the final bit is a function of a subset k of the n bits.
+    
+    Args:
+        n_bits: number of bits
+        k: number of bits in the subset, to be chosen randomly.
+        n_data: number of data points
+        signature: dict with (k+1) entries, corresponding to whether we assign 1 or 0 to that weight
+        p_bitflip: probability of flipping a bit
+    """
+    np.random.seed(seed)
+    assert len(signature) == k + 1
+    assert np.all([0 <= v <= 1 for v in signature.values()])
+
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
+    
+    in_subset = np.zeros(n_bits-1, dtype=np.bool_)
+    in_subset[subseq_idx] = 1
+    X = np.random.randint(0, 2, size=(n_data, n_bits))
+
+    for i in range(n_data):
+        seq = X[i]
+        weight = np.sum(seq[subseq_idx])
+        X[i, -1] = signature[weight]
+
+    Z = X
+    if p_bitflip > 0:
+        flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
+        flips[:,-1] = 0 # we do not flip the last 'label' bit.
+        Z = np.logical_xor(X, flips).astype(int)
+
+    return X, Z, subseq_idx
