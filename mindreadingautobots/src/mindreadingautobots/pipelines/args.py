@@ -85,5 +85,5 @@ def build_parser():
   
 	# Do you want sensitivity to be computed ? 
 	parser.add_argument('-sensitivity', type=bool, default=False, help='if true, the sensitivity will be reported every epoch, and will be saved in the output')
-
+	parser.add_argument('-epoch_report', type=bool, default=False, help='if true, the epoch results will be reported every epoch, and will be saved in job_results.csv for each job')
 	return parser

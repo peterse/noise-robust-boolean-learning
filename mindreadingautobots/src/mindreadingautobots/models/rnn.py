@@ -72,6 +72,12 @@ class RNNWrapper(nn.Module):
 		labels= targets.cpu().numpy()
 		acc= np.array(preds==labels, np.int32).sum() / len(targets)
 		return acc
+	
+	def predict(self, source, lengths, config, hidden=None):
+		output, hidden = self.model(source, hidden, lengths)
+		preds = output.cpu().numpy()
+		preds = preds.argmax(axis=1)
+		return preds
 		
 	def repackage_hidden(self, h):
 		"""Wraps hidden states in new Tensors, to detach them from their history."""

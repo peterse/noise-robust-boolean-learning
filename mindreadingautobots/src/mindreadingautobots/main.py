@@ -137,7 +137,7 @@ def main():
 
 		if model_type != model_type_from_yaml:
 			raise ValueError(f"Model type {model_type} from args is different from model type {model_type_from_yaml} in hyperparameter config file") 
-		
+		 
 
 		hyper_config = yaml["hyperparameters"]
 		
@@ -159,14 +159,17 @@ def main():
 		# 		'heads': np.array([2, 4]),
 		# 		'd_ffn': np.array([32, 64, 128]),
 		# 	}
+
 		if model_type == 'SAN':
 			for h in hyper_config['heads']:
 				for d_model in hyper_config['d_model']:
 					if d_model % h != 0:
 						raise ValueError(f"d_model must be divisible by heads. Cannot have d_model={d_model} and heads={h}")
-		
+				
 		print('Hyperparameters to tune over: ', hyper_config)
-		print('Model Type: ', model_type)	
+		print('Model Type: ', model_type)		
+	  
+
 		# Verification
 		validate_tuning_parameters(config, hyper_config, logger)
 

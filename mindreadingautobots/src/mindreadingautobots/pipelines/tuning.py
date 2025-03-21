@@ -48,7 +48,8 @@ class ThreadManager:
 	def report(self, epoch_results):
 		"""Report results from the training loop, according to the header in `get_header()`"""
 		with open(self.tune_results_path, "a") as f:
-			f.write(f"{epoch_results['epoch']},{epoch_results['train_loss']},{epoch_results['train_acc']},{epoch_results['val_acc']},{epoch_results['noiseless_val_acc']}\n")
+			sensitivity = f",{epoch_results['sensitivity']}" if 'sensitivity' in epoch_results else ""
+			f.write(f"{epoch_results['epoch']},{epoch_results['train_loss']},{epoch_results['train_acc']},{epoch_results['val_acc']},{epoch_results['noiseless_val_acc']},{epoch_results['final_train_acc']},{epoch_results['final_val_acc']},{epoch_results['final_noiseless_val_acc']}{sensitivity}\n")
 
 	def save_configs(self, hyper_config):
 		with open(hyper_config_path(self.tune_path), "w") as f:

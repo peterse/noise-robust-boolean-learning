@@ -6,3 +6,7 @@ hyperparameters:
   dropout: [0.05, 0.1]
   heads: [2, 4, 8]
   d_ffn: [32, 64, 128]
+
+num_samples: 300
+total_cpus: 160
+total_gpus: 0

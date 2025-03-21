@@ -16,7 +16,7 @@ def create_agg_results_csv(result_path, threads_path):
   for i in range(num_set_hyperparameters):
     job_folder = os.path.join(threads_path, f"job_{i}")
     hyper_config_path = os.path.join(job_folder, "hyper_config.json")
-    job_results_path = os.path.join(job_folder, "job_results.csv")
+    job_results_path = os.path.join(job_folder, "job_results.csv")s
     
     if os.path.exists(hyper_config_path) and os.path.exists(job_results_path):
       with open(hyper_config_path, 'r') as f:
