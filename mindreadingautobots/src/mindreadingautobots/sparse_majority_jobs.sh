@@ -110,7 +110,7 @@ python -m main -mode tune -dataset sparse_parity_k4_nbits21_n5000_bf15.0_seed123
 -model_type SAN -noiseless_validation -epochs 1000\  
 
 python -m main -mode tune -dataset sparse_parity_k4_nbits21_n5000_bf0_seed1234 -hyper_config_path /u/a34deng/ResearchDocuments/MindReadingAutobot/mindreadingautobots/hyper_config/rnn_sparse_parity_21_4_adjusted_config.yaml \
--model_type RNN -noiseless_validation -epochs 5\  
+-model_type RNN -noiseless_validation -epochs 5 -epoch_report True -sensitivity True
 
 
 
