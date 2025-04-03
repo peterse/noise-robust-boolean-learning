@@ -260,7 +260,6 @@ def parity_4lookback_nondeterministic(n_data, n_bits, nondeterm, seed):
 
 
 def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=None):
-
     """Generate a dataset where the final bit is the parity of a subset k of the n bits.
     
     The first n_bits-1 bits are randomly generated, and the final bit is the parity of 
@@ -270,13 +269,11 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=None)
         n_bits: TOTAL number of bits (including final bit)
         k: number of bits in the subset, to be chosen randomly.
         n_data: number of data points
-        p_bitflip: probability of flipping a bit of INPUT data - 
-            We do not apply label noise with this bitflip!
+        p_bitflip: probability of flipping a bit of INPUT data
 
     returns:
         X: (n_data, n_bits) array of noiseless data
         Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
-
     """
     np.random.seed(seed)
     if subseq_idx is None:
@@ -309,7 +306,7 @@ def sparse_majority_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=Non
         n_bits: number of bits
         k: number of bits in the subset, to be chosen randomly.
         n_data: number of data points
-        p_bitflip: probability of flipping a bit
+        p_bitflip: probability of flipping an input bit
     """
     np.random.seed(seed)
     if subseq_idx is None:
@@ -331,6 +328,86 @@ def sparse_majority_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=Non
         flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
         flips[:,-1] = 0 # we do not flip the last 'label' bit.
         Z = np.logical_xor(X, flips).astype(int)
+
+    return X, Z, subseq_idx
+
+# New functions with label noise (commented out for now)
+def sparse_parity_k_n_with_label_noise(n_bits, k, n_data, p_bitflip=0.0, p_label_noise=0.0, seed=0, subseq_idx=None):
+    # Generate a dataset where the final bit is the parity of a subset k of the n bits.
+    # The first n_bits-1 bits are randomly generated, and the final bit is the parity of 
+    # some size-k subset of the previous bits.
+    #
+    # Args:
+    #     n_bits: TOTAL number of bits (including final bit)
+    #     k: number of bits in the subset, to be chosen randomly.
+    #     n_data: number of data points
+    #     p_bitflip: probability of flipping a bit of INPUT data
+    #     p_label_noise: probability of flipping the label bit
+    #
+    # returns:
+    #     X: (n_data, n_bits) array of noiseless data
+    #     Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
+    np.random.seed(seed)
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
+    
+    in_subset = np.zeros(n_bits-1, dtype=np.bool_)
+    in_subset[subseq_idx] = 1
+    X = np.random.randint(0, 2, size=(n_data, n_bits))
+
+    for i in range(n_data):
+        seq = X[i]
+        if np.sum(seq[subseq_idx]) % 2 == 0:
+            X[i, -1] = 0
+        else:
+            X[i, -1] = 1
+
+    Z = X
+    if p_bitflip > 0:
+        flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
+        flips[:,-1] = 0 # we do not flip the last 'label' bit.
+        Z = np.logical_xor(X, flips).astype(int)
+        
+    if p_label_noise > 0:
+        label_flips = np.random.binomial(1, p_label_noise, size=(n_data, 1))
+        Z[:,-1] = np.logical_xor(Z[:,-1], label_flips).astype(int)
+
+    return X, Z, subseq_idx
+
+
+def sparse_majority_k_n_with_label_noise(n_bits, k, n_data, p_bitflip=0.0, p_label_noise=0.0, seed=0, subseq_idx=None):
+    # Generate a dataset where the final bit is a function of a subset k of the n bits.
+    #
+    # Args:
+    #     n_bits: number of bits
+    #     k: number of bits in the subset, to be chosen randomly.
+    #     n_data: number of data points
+    #     p_bitflip: probability of flipping an input bit
+    #     p_label_noise: probability of flipping the label bit
+    np.random.seed(seed)
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
+    
+    in_subset = np.zeros(n_bits-1, dtype=np.bool_)
+    in_subset[subseq_idx] = 1
+    X = np.random.randint(0, 2, size=(n_data, n_bits))
+
+    for i in range(n_data):
+        seq = X[i]
+        if np.sum(seq[subseq_idx]) <= k // 2:
+            X[i, -1] = 0
+        else:
+            X[i, -1] = 1
+
+    Z = X
+    if p_bitflip > 0:
+        flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
+        flips[:,-1] = 0 # we do not flip the last 'label' bit.
+        Z = np.logical_xor(X, flips).astype(int)
+        
+    if p_label_noise > 0:
+        label_flips = np.random.binomial(1, p_label_noise, size=(n_data, 1))
+        Z[:,-1] = np.logical_xor(Z[:,-1], label_flips).astype(int)
 
     return X, Z, subseq_idx
 

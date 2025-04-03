@@ -164,16 +164,25 @@ def train_model(model, train_loader, val_loader, noiseless_val_loader, voc, devi
 			if config.sensitivity:
 				sensitivity = compute_sensitivity(model, noiseless_val_loader, config, device)
 				epoch_results['sensitivity'] = sensitivity
+			else:
+				epoch_results['sensitivity'] = "N/A"
 			best_results = copy.deepcopy(epoch_results) 
+
+
+		if config.epoch_report:
+			epoch_results['sensitivity'] = compute_sensitivity(model, noiseless_val_loader, config, device) 
 		else:
-			epoch_results['sensitivity'] = "Not Computed"
+			epoch_results['sensitivity'] = "N/A" 
+
+
 		# save the final accuracy score as well 
 		best_results['final_val_acc'] = final_val_acc_epoch
 		best_results['final_train_acc'] = final_train_acc_epoch
 		best_results['final_noiseless_val_acc'] = final_noiseless_val_acc
 		
-		# move here to report sensitivity
-		if config.mode == 'tune' and config.epoch_report:
+		# move here to report sensitivity 
+		# idk, save epoch-wise anyways now to ensure we can recover for safety
+		if config.mode == 'tune':
 			manager.report(epoch_results)
 		# Break if we haven't had consistent progress 
 		if early_stopping.early_stop:

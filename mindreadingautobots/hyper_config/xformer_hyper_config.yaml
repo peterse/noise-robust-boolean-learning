@@ -8,5 +8,5 @@ hyperparameters:
   d_ffn: [32, 64, 128]
 
 num_samples: 300
-total_cpus: 160
+total_cpus: 30
 total_gpus: 0
