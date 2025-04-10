@@ -42,7 +42,6 @@ def s_i(f, x, i):
 
 def average_s_i(f, i, X_arr, verbose=False):
     """Compute the average sensitivity of f with respect to i"""
-    n = len(X_arr[0])
     out = 0
     for x in X_arr:
         out += s_i(f, x, i)
@@ -119,3 +118,22 @@ def compute_acc_test(func, true_func, n):
         if truth == pred:
             acc += 1 / 2 ** n
     return acc
+
+def boolean_function_from_signature(f):
+    """Given a length 2^n binary array, return the function with that boolean signature."""
+    X_arr = list(itertools.product([0, 1], repeat=n))
+    X_arr = [tuple(x) for x in X_arr]
+    lookup = dict(zip(X_arr, f))
+    def func(x):
+        return lookup[tuple(x)]
+    return lookup, func
+
+def random_boolean_function(n):
+    X_arr = list(itertools.product([0, 1], repeat=n))
+    X_arr = [tuple(x) for x in X_arr]
+    f = np.random.randint(2, size=2**n, dtype=int)
+    f = [x.item() for x in f]
+    lookup = dict(zip(X_arr, f))
+    def func(x):
+        return lookup[tuple(x)]
+    return lookup, func
