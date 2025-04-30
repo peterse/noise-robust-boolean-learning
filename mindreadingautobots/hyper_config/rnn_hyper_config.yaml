@@ -7,6 +7,6 @@ hyperparameters:
   depth: [1, 2, 3, 4, 5, 6]
   cell_type: ['LSTM']
 
-num_samples: 5
-total_cpus: 160
+num_samples: 300
+total_cpus: 30
 total_gpus: 0

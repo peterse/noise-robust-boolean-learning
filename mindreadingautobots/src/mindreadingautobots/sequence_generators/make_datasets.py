@@ -263,7 +263,6 @@ def parity_4lookback_nondeterministic(n_data, n_bits, nondeterm, seed):
 
 
 def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=None):
-
     """Generate a dataset where the final bit is the parity of a subset k of the n bits.
     
     The first n_bits-1 bits are randomly generated, and the final bit is the parity of 
@@ -273,13 +272,11 @@ def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=None)
         n_bits: TOTAL number of bits (including final bit)
         k: number of bits in the subset, to be chosen randomly.
         n_data: number of data points
-        p_bitflip: probability of flipping a bit of INPUT data - 
-            We do not apply label noise with this bitflip!
+        p_bitflip: probability of flipping a bit of INPUT data
 
     returns:
         X: (n_data, n_bits) array of noiseless data
         Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
-
     """
     np.random.seed(seed)
     if subseq_idx is None:
@@ -312,7 +309,7 @@ def sparse_majority_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=Non
         n_bits: number of bits
         k: number of bits in the subset, to be chosen randomly.
         n_data: number of data points
-        p_bitflip: probability of flipping a bit
+        p_bitflip: probability of flipping an input bit
     """
     np.random.seed(seed)
     if subseq_idx is None:
@@ -334,6 +331,86 @@ def sparse_majority_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=Non
         flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
         flips[:,-1] = 0 # we do not flip the last 'label' bit.
         Z = np.logical_xor(X, flips).astype(int)
+
+    return X, Z, subseq_idx
+
+# New functions with label noise (commented out for now)
+def sparse_parity_k_n_with_label_noise(n_bits, k, n_data, p_bitflip=0.0, p_label_noise=0.0, seed=0, subseq_idx=None):
+    # Generate a dataset where the final bit is the parity of a subset k of the n bits.
+    # The first n_bits-1 bits are randomly generated, and the final bit is the parity of 
+    # some size-k subset of the previous bits.
+    #
+    # Args:
+    #     n_bits: TOTAL number of bits (including final bit)
+    #     k: number of bits in the subset, to be chosen randomly.
+    #     n_data: number of data points
+    #     p_bitflip: probability of flipping a bit of INPUT data
+    #     p_label_noise: probability of flipping the label bit
+    #
+    # returns:
+    #     X: (n_data, n_bits) array of noiseless data
+    #     Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
+    np.random.seed(seed)
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
+    
+    in_subset = np.zeros(n_bits-1, dtype=np.bool_)
+    in_subset[subseq_idx] = 1
+    X = np.random.randint(0, 2, size=(n_data, n_bits))
+
+    for i in range(n_data):
+        seq = X[i]
+        if np.sum(seq[subseq_idx]) % 2 == 0:
+            X[i, -1] = 0
+        else:
+            X[i, -1] = 1
+
+    Z = X
+    if p_bitflip > 0:
+        flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
+        flips[:,-1] = 0 # we do not flip the last 'label' bit.
+        Z = np.logical_xor(X, flips).astype(int)
+        
+    if p_label_noise > 0:
+        label_flips = np.random.binomial(1, p_label_noise, size=(n_data, 1))
+        Z[:,-1] = np.logical_xor(Z[:,-1], label_flips).astype(int)
+
+    return X, Z, subseq_idx
+
+
+def sparse_majority_k_n_with_label_noise(n_bits, k, n_data, p_bitflip=0.0, p_label_noise=0.0, seed=0, subseq_idx=None):
+    # Generate a dataset where the final bit is a function of a subset k of the n bits.
+    #
+    # Args:
+    #     n_bits: number of bits
+    #     k: number of bits in the subset, to be chosen randomly.
+    #     n_data: number of data points
+    #     p_bitflip: probability of flipping an input bit
+    #     p_label_noise: probability of flipping the label bit
+    np.random.seed(seed)
+    if subseq_idx is None:
+        subseq_idx = np.random.choice(np.arange(n_bits - 1), k, replace=False)
+    
+    in_subset = np.zeros(n_bits-1, dtype=np.bool_)
+    in_subset[subseq_idx] = 1
+    X = np.random.randint(0, 2, size=(n_data, n_bits))
+
+    for i in range(n_data):
+        seq = X[i]
+        if np.sum(seq[subseq_idx]) <= k // 2:
+            X[i, -1] = 0
+        else:
+            X[i, -1] = 1
+
+    Z = X
+    if p_bitflip > 0:
+        flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
+        flips[:,-1] = 0 # we do not flip the last 'label' bit.
+        Z = np.logical_xor(X, flips).astype(int)
+        
+    if p_label_noise > 0:
+        label_flips = np.random.binomial(1, p_label_noise, size=(n_data, 1))
+        Z[:,-1] = np.logical_xor(Z[:,-1], label_flips).astype(int)
 
     return X, Z, subseq_idx
 
@@ -371,3 +448,108 @@ def sparse_boolean_weightbased_k_n(n_bits, k, n_data, signature, p_bitflip=0.0, 
         Z = np.logical_xor(X, flips).astype(int)
 
     return X, Z, subseq_idx
+
+
+### Examine the patterns of the data
+def k_choose_m_transition_cycle_dataset(transition_func, k, m, subseq_idx, n_bits=None):
+    """Generate a dataset of forecast data with a k-choose-m scheme that continues until cycles are formed.
+
+    The scheme is as follows:
+    - All possible k-bit prefixes are used (2^k total)
+    - A subset of m bits is chosen according to subseq_idx
+    - Each subsequent bit is determined by transition_func acting on a length-m prefix;
+        the length-m prefix is the size-m subsequence of the k previous bits
+    - For each prefix, bits are generated until the original k-bit prefix is seen again
+      (or until n_bits total bits are generated, if n_bits is specified)
+
+    Args:
+        transition_func: A function with inputs as int-sequences of length m and return value of 0 or 1
+        k: amount of lookback
+        m: number of bits in the subset of lookback
+        subseq_idx: indices to select m bits from the k-bit lookback window (must be provided)
+        n_bits: if provided, generate exactly this many bits (including prefix) for each sequence
+
+    returns:
+        sequences: list of numpy arrays, each representing a complete cycle starting from a unique k-bit prefix
+        subseq_idx: the indices used for selecting m bits from the k-bit window
+    """
+    assert len(subseq_idx) == m
+    subseq_idx = np.sort(np.array(subseq_idx))
+
+    sequences = []
+    # iterate over all unique bitstrings of length k
+    for bits in itertools.product('01', repeat=k):
+        prefix = np.array([int(x) for x in bits])
+        
+        # Initialize sequence with the k-bit prefix
+        sequence = list(prefix)
+        
+        # Generate new bits until condition is met (cycle found or n_bits reached)
+        while True:
+            # Get the last k bits
+            last_k_bits = np.array(sequence[-k:])
+            
+            # Select the m-bit subsequence
+            targets = last_k_bits[subseq_idx]
+            
+            # Generate the next bit
+            next_bit = transition_func(targets)
+            sequence.append(next_bit)
+            
+            # Check termination condition
+            if n_bits is not None:
+                # Stop if we've generated n_bits total
+                if len(sequence) >= n_bits:
+                    # Truncate to exactly n_bits
+                    sequence = sequence[:n_bits]
+                    break
+            else:
+                # Original logic: stop if we see the original prefix again
+                if len(sequence) > k and np.array_equal(sequence[-k:], prefix):
+                    break
+        
+        sequences.append(np.array(sequence))
+    
+    return sequences
+
+def k_choose_m_hamilton_cycle_dataset(k, m, subseq_idx, n_bits=None):
+    """
+    Generate datasets based on a Hamilton cycle where each sequence continues until a cycle is formed.
+    
+    Uses a De Bruijn sequence on a specified size-m subset of the previous k bits.
+    
+    Args:
+        k: amount of lookback
+        m: number of bits in the subset of lookback
+        subseq_idx: indices to select m bits from the k-bit lookback window (must be provided)
+        n_bits: if provided, generate exactly this many bits (including prefix) for each sequence
+        
+    Returns:
+        X: numpy array of noiseless data with shape matching original implementation (2^k, cycle_length)
+        None: placeholder for noisy data (for compatibility with original function)
+        subseq_idx: the indices used for selecting m bits from the k-bit window
+    """
+    assert len(subseq_idx) == m, "subseq_idx must contain exactly m indices"
+    assert all(0 <= idx < k for idx in subseq_idx), "all indices in subseq_idx must be between 0 and k-1"
+    
+    # Construct a Hamilton cycle on m-bit prefixes
+    G = construct_graph(m)
+    hamiltonian_cycle = find_hamiltonian_cycle(G)
+    
+    # Create mapping from m-bit sequences to next bit
+    mapping = {}
+    for i in range(len(hamiltonian_cycle) - 1):
+        u, v = hamiltonian_cycle[i], hamiltonian_cycle[i + 1]
+        mapping[u] = v[-1]
+
+    # Construct transition function
+    def transition_func(arr):
+        s = ''.join([str(x) for x in arr])
+        out = int(mapping.get(s))
+        return out
+
+    # Use the cycle detection function to generate sequences
+    X = k_choose_m_transition_cycle_dataset(transition_func, k, m, subseq_idx, n_bits)
+    
+    # Return in the same format as the original function (X, Z, subseq_idx)
+    return X

@@ -185,25 +185,45 @@ def main():
             print(f"Noisy answer: {Z_train[i, -1]}\n")
 
     # Save the datasets
-    os.makedirs('data/multitask_sparse_parity', exist_ok=True)
-    data_io.save_numpy_as_dict(X_train, 'data/multitask_sparse_parity/noiseless_train.pkl')
-    data_io.save_numpy_as_dict(X_val, 'data/multitask_sparse_parity/noiseless_val.pkl')
-    if p_bitflip > 0:
-        data_io.save_numpy_as_dict(Z_train, 'data/multitask_sparse_parity/train.pkl')
-        data_io.save_numpy_as_dict(Z_val, 'data/multitask_sparse_parity/val.pkl')
+    dirname = 'data/multitask_sparse_parity'
+    os.makedirs(dirname, exist_ok=True)
+    
+    train_path = f"{dirname}/train.pkl"
+    val_path = f"{dirname}/val.pkl"
+    noiseless_train_path = f"{dirname}/noiseless_train.pkl"
+    noiseless_val_path = f"{dirname}/noiseless_val.pkl"
+    
+    # Save files similar to make_datasets.ipynb
+    try:
+        # Save noisy data (if noise was applied)
+        data_io.save_numpy_as_dict(Z_train, train_path)
+        data_io.save_numpy_as_dict(Z_val, val_path)
+        
+        # Save noiseless data
+        data_io.save_numpy_as_dict(X_train, noiseless_train_path)
+        data_io.save_numpy_as_dict(X_val, noiseless_val_path)
+    except NameError:
+        # Fallback implementation
+        data_io.save_numpy_as_dict(Z_train, train_path)
+        data_io.save_numpy_as_dict(Z_val, val_path)
+        data_io.save_numpy_as_dict(X_train, noiseless_train_path)
+        data_io.save_numpy_as_dict(X_val, noiseless_val_path)
 
-    # Print saved data
-    print("\nPrinting saved data:")
-    for filename in ['noiseless_train.pkl', 'noiseless_val.pkl', 'train.pkl', 'val.pkl']:
-        filepath = f'data/multitask_sparse_parity/{filename}'
-        if os.path.exists(filepath):
-            with open(filepath, 'rb') as f:
-                data = pickle.load(f)
-                print(f"\nContents of {filename}:")
-                print(f"Number of examples: {len(data['line'])}")
-                print("First example:")
-                print(f"Line: {data['line'][0]}")
-                print(f"Label: {data['label'][0]}")
+    # Save the task_subsets for reference
+    with open(f"{dirname}/task_subsets.pkl", 'wb') as f:
+        pickle.dump(task_subsets, f)
+        
+    # Also save a more human-readable mapping
+    task_mapping_file = f"{dirname}/task_mapping.txt"
+    with open(task_mapping_file, 'w') as f:
+        f.write(f"Dataset: multitask_sparse_parity with {n_tasks} tasks, {task_bits_length} task bits, k={k}, noise={p_bitflip}\n\n")
+        f.write("Mapping between control bits and task bit subsets:\n")
+        for i, subset in enumerate(task_subsets):
+            control_bit_str = ''.join(['1' if j == i else '0' for j in range(n_tasks)])
+            f.write(f"Control bit pattern '{control_bit_str}' (task {i+1}) uses subset {subset} for parity calculation\n")
+
+    print(f"Saved {train_path}, {val_path}, {noiseless_train_path}, {noiseless_val_path}")
+    print(f"Also saved task subsets to {dirname}/task_subsets.pkl and human-readable mapping to {dirname}/task_mapping.txt")
 
 
 if __name__ == "__main__":
