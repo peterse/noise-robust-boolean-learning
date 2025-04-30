@@ -1,16 +1,36 @@
 import os
-import logging
 import pdb
-import re
 import torch
-from torch.utils.data import Dataset
-import pandas as pd
 import numpy as np
-import unicodedata
 from collections import OrderedDict
-from mindreadingautobots.utils.sentence_processing import sents_to_idx, idxs_to_sent
 import pickle
 
+
+def sent_to_idx(voc, sent, max_length):
+	# padsym=  'p'
+	idx_vec = []
+	for w in sent:
+		try:
+			idx = voc.get_id(w)
+			idx_vec.append(idx)
+		except:
+			pdb.set_trace()
+
+	return idx_vec
+
+
+def sents_to_idx(voc, sents):
+	# we will not tolerate ragged data
+	max_length = max([len(s) for s in sents])
+	for s in sents:
+		if len(s) != max_length:
+			raise ValueError('Ragged data')
+	all_indexes= []
+	for sent in sents:
+		all_indexes.append(sent_to_idx(voc, sent, max_length))
+	
+	all_indexes = torch.tensor(all_indexes, dtype = torch.long)
+	return all_indexes
 
 
 class Corpus(object):
@@ -28,7 +48,6 @@ class Corpus(object):
 		# df = pd.read_csv(path, sep='\t')
 		with open(path, 'rb') as handle:
 			df= pickle.load(handle)
-
 		
 		# the type of df is a dictionary with keys 'line' and 'label'
 		# df['line'] is a list of strings
@@ -82,49 +101,9 @@ class Sampler(object):
 		# the last bit of the 
 		# source = batch_ids[:,:-1].transpose(0,1)
 		source = batch_ids.transpose(0,1)
-
 		targets= target_batch.clone()
 		
 		return source, targets, word_lens
 
 	def __len__(self):
 		return len(self.data)
-
-
-
-class SamplerIter(object):
-	# I don't know what this does
-	def __init__(self, voc, batch_size):
-		
-		self.batch_size = batch_size
-		self.voc = voc
-		self.sidx = [2, 9, 23, 36]
-		# self.sidx = [2, 9]
-		self.len = 40
-		# self.data =corpus.data
-		
-
-	def get_batch(self):
-		endsym=  's'
-		word_batch = sample_blist(self.batch_size, self.len)
-		labels = [check_sparse_parity(x, self.sidx) for x in word_batch]
-
-		word_batch = [list(x.strip()+endsym) for x in word_batch]
-
-		target_batch = torch.tensor(labels).type(torch.int64)		
-		word_lens= torch.tensor([len(x) for x in word_batch], dtype = torch.long)
-
-		try:
-			batch_ids= sents_to_idx(self.voc, word_batch)
-		except:
-			pdb.set_trace()
-
-		source = batch_ids[:,:-1].transpose(0,1)
-		targets= target_batch.clone()
-		
-		return source, targets, word_lens
-
-	def __len__(self):
-		return len(self.data)
-
-

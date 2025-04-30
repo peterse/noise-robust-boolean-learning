@@ -14,7 +14,6 @@ try:
 except ImportError:
 	import pickle
 
-from ray import tune
 from mindreadingautobots.pipelines.training import train_model, load_data, build_model
 from mindreadingautobots.pipelines import tuning
 
@@ -25,7 +24,6 @@ from mindreadingautobots.utils.logger import init_logger
 from mindreadingautobots.pipelines.args import build_parser
 
 import yaml 
-
 
 global log_folder
 global model_folder

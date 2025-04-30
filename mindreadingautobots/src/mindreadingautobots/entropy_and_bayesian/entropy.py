@@ -232,8 +232,6 @@ def conditional_H_of_xn_given_kbits_klookback(n, k, p_S, p_x_conditional):
     for _ in range(n - k - 1):
         running_prob = p_x_conditional * running_prob[None, :]
         running_prob = running_prob.sum(axis=-1)
-
-
     # Compute H(X_n | X_{n-1}, ..., X_{n-k})
     H = - xlogx(p_x_conditional) * running_prob[None, :]
     H = H.sum()
