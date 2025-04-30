@@ -1,1 +1,0 @@
-python -m main -mode tune -dataset sparse_parity_k4_nbits21_n5000_bf1_seed1234 -hyper_config_path /u/a34deng/ResearchDocuments/MindReadingAutobot/mindreadingautobots/hyper_config/xformer_hyper_config.yaml -model_type SAN -noiseless_validation -epochs 1000   

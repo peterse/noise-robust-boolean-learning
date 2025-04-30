@@ -172,25 +172,29 @@ def k_lookback_weight_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, s
         X: (n_data, n_bits) array of noiseless data
         Z: (n_data, n_bits) array of noisy data, or None if p_bitflip is 0
     """
-    raise NotImplementedError("output signature is wrong, and seed bits are missing.")
 
     assert len(transition_matrix) == k + 1
     assert np.all([0 <= v <= 1 for v in transition_matrix.values()])
     assert n_bits > k
-    
+    determ_transition_matrix = {k: np.round(v) for k, v in transition_matrix.items()}
+
     np.random.seed(seed)
     X = np.random.randint(0, 2, size=(n_data, n_bits + k))
-    Z = None
     for i in range(n_data):
         for j in range(k, n_bits + k):
-            weight = np.sum(X[i, j-k:j])
-            X[i, j] = np.random.binomial(1, transition_matrix[weight])
+            if j == n_bits + k - 1:
+                # The final bit is generated in a ''noiseless' manner, i.e. deterministically
+                X[i, j] = determ_transition_matrix[np.sum(X[i, j-k:j])]
+            else:
+                weight = np.sum(X[i, j-k:j])
+                X[i, j] = np.random.binomial(1, transition_matrix[weight])
+    X = X[:,k:]
+    Z = X.copy()
     if p_bitflip > 0:
         flips = np.random.binomial(1, p_bitflip, size=(n_data, n_bits))
         Z = np.logical_xor(X, flips).astype(int)
-        Z = Z[:,k:]
         
-    return X[:,k:], 
+    return X, Z, None
 
 
 # def k_choose_m_forecast_dataset(transition_matrix, k, n_data, n_bits, p_bitflip, seed):
@@ -226,7 +230,7 @@ def not_majority_4lookback(n_data, n_bits, p_bitflip, seed):
     return k_lookback_weight_dataset(transition_matrix, 4, n_data, n_bits, p_bitflip, seed) 
 
 
-def not_majority_4lookback_nondeterministic(n_data, n_bits, nondeterm, seed):
+def not_majority_5lookback_nondeterministic(n_data, n_bits, nondeterm, seed):
     """Generate nondeterministic NOT-MAJORITY forecasting data with n_bits bits.
 
     the `nondeterm` parameter is the probability of bitflipping a bit during 
@@ -235,8 +239,8 @@ def not_majority_4lookback_nondeterministic(n_data, n_bits, nondeterm, seed):
     We break ties by rounding up: majority of 1100 is 1.
     
     """
-    transition_matrix = {0: 1 - nondeterm, 1: 1 - nondeterm, 2: nondeterm, 3: nondeterm, 4: nondeterm}
-    return k_lookback_weight_dataset(transition_matrix, 4, n_data, n_bits, 0, seed) 
+    transition_matrix = {0: 1 - nondeterm, 1: 1 - nondeterm, 2: 1 - nondeterm, 3: nondeterm, 4: nondeterm, 5: nondeterm}
+    return k_lookback_weight_dataset(transition_matrix, 5, n_data, n_bits, 0, seed) 
 
 
 def parity_4lookback(n_data, n_bits, p_bitflip, seed):
@@ -256,7 +260,6 @@ def parity_4lookback_nondeterministic(n_data, n_bits, nondeterm, seed):
     """
     transition_matrix = {0: nondeterm, 1: 1 - nondeterm, 2: nondeterm, 3: 1 - nondeterm, 4: nondeterm}
     return k_lookback_weight_dataset(transition_matrix, 4, n_data, n_bits, 0, seed) 
-
 
 
 def sparse_parity_k_n(n_bits, k, n_data, p_bitflip=0.0, seed=0, subseq_idx=None):

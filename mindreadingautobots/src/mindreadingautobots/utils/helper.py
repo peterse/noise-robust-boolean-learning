@@ -149,14 +149,6 @@ class Voc:
 	def __init__(self):
 		self.trimmed = False
 		self.frequented = False
-		# self.w2id = {'<s>': 0, '</s>': 1, 'unk': 2}
-		# self.id2w = {0: '<s>', 1: '</s>', 2: 'unk'}
-		# self.w2c = {'unk':1}
-		# self.nwords = 3
-
-		# self.w2id = { 's': 0, 'p':1}
-		# self.id2w = {0: 's', 1:'p'}
-		# TODO: Do i need SOS or EOS at all? I'm going to generate the next token, which will never be sos/eos
 		self.w2id = {}
 		self.id2w = {}
 		self.w2c = {}
@@ -169,11 +161,9 @@ class Voc:
 			self.w2c[word] = 1
 			self.nwords += 1
 		
-
 	def add_sent(self, sent):
 		for word in sent:
 			self.add_word(word)
-
 
 	def get_id(self, idx):
 		return self.w2id[idx]
