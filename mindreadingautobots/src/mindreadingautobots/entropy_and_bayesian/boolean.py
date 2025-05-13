@@ -137,3 +137,54 @@ def random_boolean_function(n):
     def func(x):
         return lookup[tuple(x)]
     return lookup, func
+
+
+def dataset_lookup_table(dataset):
+    """
+    Given a dataset X with N rows and the last column being labels, all bit-valued, create a lookup table:
+    The lookup table is a dictionary where each key is a unique row in X, and the value
+    is the most common label associated with that. This means that for every unique row, 
+    we must calculate which label was more likely.
+    
+    Args:
+        dataset (np.array): The dataset with shape (N, n+1) where the last column is the label
+        
+    Returns:
+        function: A function that takes in features and returns the most common label
+    """
+    # Extract features (all columns except the last one) and labels (last column)
+    features = dataset[:, :-1]
+    labels = dataset[:, -1]
+    
+    # Create a dictionary to store counts of each label for each unique feature row
+    label_counts = {}
+    
+    # Iterate through the dataset
+    for i in range(len(dataset)):
+        # Convert feature row to tuple so it can be used as dictionary key
+        feature_tuple = tuple(features[i])
+        label = labels[i]
+        
+        # Initialize counter for this feature if it doesn't exist
+        if feature_tuple not in label_counts:
+            label_counts[feature_tuple] = {}
+            
+        # Increment count for this label
+        if label not in label_counts[feature_tuple]:
+            label_counts[feature_tuple][label] = 0
+        label_counts[feature_tuple][label] += 1
+    
+    # Create the final lookup table with the most common label for each feature
+    lookup_table = {}
+    for feature, counts in label_counts.items():
+        # Find the label with the highest count
+        most_common_label = max(counts.items(), key=lambda x: x[1])[0]
+        lookup_table[feature] = most_common_label
+    
+    # now, convert the lookup table to a function
+    def lookup_func(x):
+        return lookup_table[tuple(x)]
+    return lookup_func
+
+
+
