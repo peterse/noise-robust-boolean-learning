@@ -96,6 +96,7 @@ def train_model_multiprocessing(package):
 	# Then dispatch to the training pipeline
 	for k, v in hyper_config.items():
 		setattr(config, k, v)
+		manager.log_print(f"Hyperparameter {k} set to {v}")
 
 	voc, train_loader, val_loader, noiseless_val_loader = load_data(config, manager.logger)
 	model = build_model(config=config, voc=voc, device=device, logger=manager.logger)
