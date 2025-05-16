@@ -114,9 +114,27 @@ def compute_acc_test(func, true_func, n):
     acc = 0
     for i, x in enumerate(itertools.product([0, 1], repeat=n)):
         truth = true_func(x)
-        pred = func(x)
+        try:
+            # sometimes when you use lookup tables on training data, we don't actually see all the data
+            pred = func(x)
+        except KeyError:
+            continue
         if truth == pred:
             acc += 1 / 2 ** n
+    return acc
+
+def compute_acc_on_dataset(func, dataset):
+    """Compute the accuracy of `func` on the dataset."""
+    acc = 0
+    for x in dataset:
+        truth = x[-1]
+        try:
+            # sometimes when you use lookup tables on training data, we don't actually see all the data
+            pred = func(x[:-1])
+        except KeyError:
+            continue
+        if truth == pred:
+            acc += 1 / len(dataset)
     return acc
 
 def boolean_function_from_signature(f):
@@ -179,12 +197,12 @@ def dataset_lookup_table(dataset):
     for feature, counts in label_counts.items():
         # Find the label with the highest count
         most_common_label = max(counts.items(), key=lambda x: x[1])[0]
-        lookup_table[feature] = most_common_label
+        lookup_table[tuple([int(x) for x in feature])] = int(most_common_label)
     
     # now, convert the lookup table to a function
     def lookup_func(x):
         return lookup_table[tuple(x)]
-    return lookup_func
+    return lookup_func, lookup_table
 
 
 
